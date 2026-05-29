@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Order Confirmation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 30px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .header {
+            background-color: #2e7d32;
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .header p {
+            margin: 5px 0 0;
+            font-size: 14px;
+            opacity: 0.85;
+        }
+        .body {
+            padding: 30px;
+        }
+        .body h2 {
+            color: #2e7d32;
+            margin-top: 0;
+        }
+        .order-id {
+            background-color: #f1f8e9;
+            border-left: 4px solid #2e7d32;
+            padding: 12px 16px;
+            margin-bottom: 24px;
+            font-size: 14px;
+            color: #333;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 24px;
+        }
+        table thead {
+            background-color: #2e7d32;
+            color: white;
+        }
+        table thead th {
+            padding: 12px;
+            text-align: left;
+            font-size: 14px;
+        }
+        table tbody tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        table tbody td {
+            padding: 12px;
+            font-size: 14px;
+            color: #444;
+            border-bottom: 1px solid #eee;
+        }
+        .total {
+            text-align: right;
+            font-size: 18px;
+            font-weight: bold;
+            color: #2e7d32;
+            margin-bottom: 24px;
+        }
+        .footer {
+            background-color: #f4f4f4;
+            text-align: center;
+            padding: 20px;
+            font-size: 12px;
+            color: #888;
+        }
+        .footer span {
+            color: #2e7d32;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>Order Confirmed ✓</h1>
+        <p>Thank you for shopping with Gura Neza</p>
+    </div>
+    <div class="body">
+        <h2>Hello, <span th:text="${name}"></span>!</h2>
+        <p>Your order has been placed successfully. Here are your order details:</p>
+
+        <div class="order-id">
+            Order ID: <strong th:text="'#' + ${orderId}"></strong> &nbsp;|&nbsp;
+            Placed at: <span th:text="${createdAt}"></span>
+        </div>
+
+        <table>
+            <thead>
+            <tr>
+                <th>Product</th>
+                <th>Quantity</th>
+                <th>Unit Price</th>
+                <th>Subtotal</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="item : ${items}">
+                <td th:text="${item.productName}"></td>
+                <td th:text="${item.quantity}"></td>
+                <td th:text="${item.price} + ' RWF'"></td>
+                <td th:text="${item.subtotal} + ' RWF'"></td>
+            </tr>
+            </tbody>
+        </table>
+
+        <div class="total">
+            Total: <span th:text="${totalPrice} + ' RWF'"></span>
+        </div>
+
+        <p style="color: #666; font-size: 13px;">
+            If you have any questions about your order, please contact our support team.
+        </p>
+    </div>
+    <div class="footer">
+        <p>© 2026 <span>Gura Neza</span>. All rights reserved.</p>
+        <p>This is an automated email, please do not reply.</p>
+    </div>
+</div>
+</body>
+</html>

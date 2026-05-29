@@ -1,0 +1,94 @@
+package com.dariusfirstproject.gura_neza.wallet;
+
+import com.dariusfirstproject.gura_neza.user.User;
+import com.dariusfirstproject.gura_neza.user.UserRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+@Transactional
+public class WalletService {
+
+    private final WalletRepository walletRepository;
+    private final TransactionRepository transactionRepository;
+    private final UserRepository userRepository;
+
+    public WalletResponse getWallet() {
+        User user = getCurrentUser();
+        Wallet wallet = walletRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new RuntimeException("Wallet not found"));
+        return mapToResponse(wallet);
+    }
+
+    public WalletResponse topUp(Long userId, TopUpRequest request) {
+        if (request.getAmount() == null || request.getAmount().doubleValue() <= 0) {
+            throw new RuntimeException("Top up amount must be greater than zero");
+        }
+
+        Wallet wallet = walletRepository.findByUserId(userId)
+                .orElseThrow(() -> new RuntimeException("Wallet not found for this user"));
+
+        wallet.setBalance(wallet.getBalance().add(request.getAmount()));
+        walletRepository.save(wallet);
+
+        Transaction transaction = Transaction.builder()
+                .wallet(wallet)
+                .amount(request.getAmount())
+                .type(TransactionType.CREDIT)
+                .timestamp(LocalDateTime.now())
+                .build();
+        transactionRepository.save(transaction);
+
+        return mapToResponse(wallet);
+    }
+
+    public List<TransactionResponse> getTransactions() {
+        User user = getCurrentUser();
+        Wallet wallet = walletRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new RuntimeException("Wallet not found"));
+
+        return transactionRepository.findByWalletId(wallet.getId())
+                .stream()
+                .map(t -> TransactionResponse.builder()
+                        .id(t.getId())
+                        .amount(t.getAmount())
+                        .type(t.getType())
+                        .timestamp(t.getTimestamp())
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    private User getCurrentUser() {
+        String email = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    private WalletResponse mapToResponse(Wallet wallet) {
+        List<TransactionResponse> transactions = transactionRepository
+                .findByWalletId(wallet.getId())
+                .stream()
+                .map(t -> TransactionResponse.builder()
+                        .id(t.getId())
+                        .amount(t.getAmount())
+                        .type(t.getType())
+                        .timestamp(t.getTimestamp())
+                        .build())
+                .collect(Collectors.toList());
+
+        return WalletResponse.builder()
+                .id(wallet.getId())
+                .balance(wallet.getBalance())
+                .transactions(transactions)
+                .build();
+    }
+}
