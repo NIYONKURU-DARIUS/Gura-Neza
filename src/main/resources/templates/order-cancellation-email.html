@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<h2>Hello, <span th:text="${name}">User</span>!</h2>
+<p>Your order <strong>#<span th:text="${orderId}">0</span></strong> has been automatically cancelled
+    because it was not confirmed within 15 minutes.</p>
+<p><strong>Order total:</strong> <span th:text="${totalPrice}">0</span> RWF</p>
+<p>Since payment is only charged upon confirmation, no money was deducted from your wallet.</p>
+<p>Feel free to place a new order anytime on Gura Neza.</p>
+</body>
+</html>

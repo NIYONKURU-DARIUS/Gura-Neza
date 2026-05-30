@@ -4,25 +4,27 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class AuthController {
-  private final AuthService authService;
+    private final AuthService authService;
 
-  @PostMapping("/register")
+    @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest registerRequest) {
-      return new ResponseEntity<>(authService.register(registerRequest), HttpStatus.CREATED);
-  }
+        return new ResponseEntity<>(authService.register(registerRequest), HttpStatus.CREATED);
+    }
 
-  @PostMapping("/login")
+    @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest loginRequest) {
-      return new ResponseEntity<>(authService.login(loginRequest), HttpStatus.OK);
-  }
+        return new ResponseEntity<>(authService.login(loginRequest), HttpStatus.OK);
+    }
 
+    // FIX: endpoint was missing — verification link in registration email was a dead 404
+    @GetMapping("/verify")
+    public ResponseEntity<String> verifyEmail(@RequestParam String token) {
+        return ResponseEntity.ok(authService.verifyEmail(token));
+    }
 }

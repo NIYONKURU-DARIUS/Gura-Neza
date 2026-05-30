@@ -1,5 +1,6 @@
 package com.dariusfirstproject.gura_neza.wallet;
 
+import com.dariusfirstproject.gura_neza.email.EmailService;
 import com.dariusfirstproject.gura_neza.user.User;
 import com.dariusfirstproject.gura_neza.user.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ public class WalletService {
     private final WalletRepository walletRepository;
     private final TransactionRepository transactionRepository;
     private final UserRepository userRepository;
+    private final EmailService emailService;
 
     public WalletResponse getWallet() {
         User user = getCurrentUser();
@@ -45,6 +47,15 @@ public class WalletService {
                 .timestamp(LocalDateTime.now())
                 .build();
         transactionRepository.save(transaction);
+
+        // FIX: removed unused `Optional<User> user = userRepository.findById(userId)` that was here
+
+        emailService.sendWalletTopUpEmail(
+                wallet.getUser().getEmail(),
+                wallet.getUser().getName(),
+                request.getAmount(),
+                wallet.getBalance()
+        );
 
         return mapToResponse(wallet);
     }

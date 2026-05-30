@@ -9,6 +9,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
+
 @Entity
 @Table(name="users")
 @Data
@@ -29,6 +30,7 @@ public class User implements UserDetails {
     private Role role;
     private String verificationToken;
     private boolean enabled;
+
     @Override
     public String getUsername(){
         return email;
@@ -51,5 +53,5 @@ public class User implements UserDetails {
     public boolean isCredentialsNonExpired() { return true; }
 
     @Override
-    public boolean isEnabled() { return true; }
+    public boolean isEnabled() { return enabled; } // FIX: was hardcoded to true
 }

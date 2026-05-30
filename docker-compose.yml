@@ -30,16 +30,3 @@ services:
     depends_on:
       - zookeeper
 
-  app:
-    build: .
-    ports:
-      - "8086:8086"
-    depends_on:
-      - postgres
-      - redis
-      - kafka
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/gura_neza
-      SPRING_DATA_REDIS_HOST: redis
-      SPRING_DATA_REDIS_PORT: 6379
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092

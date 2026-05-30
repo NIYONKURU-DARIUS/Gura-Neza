@@ -1,6 +1,8 @@
 package com.dariusfirstproject.gura_neza.scheduler;
 
+import com.dariusfirstproject.gura_neza.email.EmailService;
 import com.dariusfirstproject.gura_neza.order.Order;
+import com.dariusfirstproject.gura_neza.order.OrderItemRepository;
 import com.dariusfirstproject.gura_neza.order.OrderRepository;
 import com.dariusfirstproject.gura_neza.order.OrderStatus;
 import com.dariusfirstproject.gura_neza.product.Product;
@@ -13,7 +15,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
@@ -22,11 +26,12 @@ public class AppScheduler {
 
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
+    private final OrderItemRepository orderItemRepository;
+    private final EmailService emailService;
 
-    // Restock threshold — alert if stock is at or below this
     private static final int LOW_STOCK_THRESHOLD = 5;
 
-    // Cancel PENDING orders older than 15 minutes — runs every minute
+    // ── Runs every minute: cancel PENDING orders older than 15 min ──────────
     @Scheduled(fixedRate = 60_000)
     @Transactional
     public void cancelUnpaidOrders() {
@@ -37,70 +42,69 @@ public class AppScheduler {
         if (staleOrders.isEmpty()) return;
 
         staleOrders.forEach(order -> {
+            // Restore stock for each item in the cancelled order
+            order.setItems(orderItemRepository.findByOrderId(order.getId()));
+            order.getItems().forEach(item -> {
+                Product product = item.getProduct();
+                product.setStock(product.getStock() + item.getQuantity());
+                productRepository.save(product);
+                log.info("Restored {} unit(s) of '{}' after order #{} cancellation",
+                        item.getQuantity(), product.getName(), order.getId());
+            });
+
+            // Send cancellation email to the user
+            try {
+                emailService.sendOrderCancellationEmail(
+                        order.getUser().getEmail(),
+                        order.getUser().getName(),
+                        order.getId(),
+                        order.getTotalPrice()
+                );
+            } catch (Exception e) {
+                log.error("Failed to send cancellation email for order #{}: {}", order.getId(), e.getMessage());
+            }
+
             order.setOrderStatus(OrderStatus.CANCELLED);
-            log.info("Auto-cancelled unpaid order #{} (placed at {})", order.getId(), order.getCreatedAt());
+            log.info("Auto-cancelled order #{} (placed at {})", order.getId(), order.getCreatedAt());
         });
 
         orderRepository.saveAll(staleOrders);
         log.info("Cancelled {} unpaid order(s)", staleOrders.size());
     }
 
-    // Daily sales report — runs every day at 11:59 PM
-    @Scheduled(cron = "0 59 23 * * *")
-    public void dailySalesReport() {
-        LocalDateTime start = LocalDateTime.now().toLocalDate().atStartOfDay();
-        LocalDateTime end = LocalDateTime.now();
-
-        List<Order> orders = orderRepository
-                .findByOrderStatusAndCreatedAtBetween(OrderStatus.CONFIRMED, start, end);
-
-        BigDecimal totalRevenue = orders.stream()
-                .map(Order::getTotalPrice)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        log.info("===== DAILY SALES REPORT =====");
-        log.info("Date: {}", start.toLocalDate());
-        log.info("Total orders: {}", orders.size());
-        log.info("Total revenue: {} RWF", totalRevenue);
-        log.info("==============================");
-    }
-
-    // Weekly sales report — runs every Sunday at 11:58 PM
-    @Scheduled(cron = "0 58 23 * * SUN")
-    public void weeklySalesReport() {
-        LocalDateTime end = LocalDateTime.now();
-        LocalDateTime start = end.minusDays(7);
-
-        List<Order> orders = orderRepository
-                .findByOrderStatusAndCreatedAtBetween(OrderStatus.CONFIRMED, start, end);
-
-        BigDecimal totalRevenue = orders.stream()
-                .map(Order::getTotalPrice)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        log.info("===== WEEKLY SALES REPORT =====");
-        log.info("Period: {} to {}", start.toLocalDate(), end.toLocalDate());
-        log.info("Total orders: {}", orders.size());
-        log.info("Total revenue: {} RWF", totalRevenue);
-        log.info("===============================");
-    }
-
-    // Restock alert — runs every day at 8:00 AM
-    @Scheduled(cron = "0 0 8 * * *")
-    public void restockAlert() {
-        List<Product> lowStockProducts = productRepository
-                .findByStockLessThanEqual(LOW_STOCK_THRESHOLD);
+    // FIX: was missing — runs every hour: log products below LOW_STOCK_THRESHOLD ─
+    @Scheduled(fixedRate = 3_600_000)
+    @Transactional
+    public void checkLowStockProducts() {
+        List<Product> lowStockProducts = productRepository.findByStockLessThanEqual(LOW_STOCK_THRESHOLD);
 
         if (lowStockProducts.isEmpty()) {
-            log.info("Restock check: all products sufficiently stocked.");
+            log.info("Low-stock check: all products are sufficiently stocked.");
             return;
         }
 
-        log.warn("===== LOW STOCK ALERT =====");
-        lowStockProducts.forEach(p ->
-                log.warn("Product '{}' (ID: {}) has only {} unit(s) left!",
-                        p.getName(), p.getId(), p.getStock())
+        log.warn("Low-stock alert — {} product(s) at or below {} units:", lowStockProducts.size(), LOW_STOCK_THRESHOLD);
+        lowStockProducts.forEach(product ->
+                log.warn("  → [{}] '{}' — {} unit(s) remaining", product.getId(), product.getName(), product.getStock())
         );
-        log.warn("===========================");
+    }
+
+    // FIX: was missing — runs every day at midnight: log daily sales summary ──
+    @Scheduled(cron = "0 0 0 * * *")
+    @Transactional
+    public void dailySalesReport() {
+        LocalDateTime from = LocalDateTime.now().minusDays(1).withHour(0).withMinute(0).withSecond(0);
+        LocalDateTime to   = from.plusDays(1);
+
+        List<Order> confirmedOrders = orderRepository
+                .findByOrderStatusAndCreatedAtBetween(OrderStatus.CONFIRMED, from, to);
+
+        BigDecimal totalRevenue = confirmedOrders.stream()
+                .map(Order::getTotalPrice)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        String reportDate = from.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        log.info("Daily sales report for {} — {} order(s) confirmed — Total revenue: {} RWF",
+                reportDate, confirmedOrders.size(), totalRevenue);
     }
 }

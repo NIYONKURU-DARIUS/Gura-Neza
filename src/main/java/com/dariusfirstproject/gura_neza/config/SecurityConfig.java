@@ -59,6 +59,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/swagger-ui/**").permitAll()
                         .requestMatchers("/v3/api-docs/**").permitAll()
+                        // WebSocket handshake endpoints must be open
+                        .requestMatchers("/ws/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
@@ -69,7 +71,7 @@ public class SecurityConfig {
                             OAuth2AuthenticationToken oauthToken = (OAuth2AuthenticationToken) authentication;
                             OAuth2User oAuth2User = oauthToken.getPrincipal();
                             String email = oAuth2User.getAttribute("email");
-                            String name = oAuth2User.getAttribute("name");
+                            String name  = oAuth2User.getAttribute("name");
 
                             User user = userRepository.findByEmail(email).orElseGet(() -> {
                                 User newUser = User.builder()
@@ -77,6 +79,7 @@ public class SecurityConfig {
                                         .email(email)
                                         .password(passwordEncoder.encode(UUID.randomUUID().toString()))
                                         .role(Role.USER)
+                                        .enabled(true)
                                         .build();
                                 userRepository.save(newUser);
 
@@ -85,7 +88,6 @@ public class SecurityConfig {
                                         .balance(BigDecimal.ZERO)
                                         .build();
                                 walletRepository.save(wallet);
-
                                 return newUser;
                             });
 
@@ -96,6 +98,7 @@ public class SecurityConfig {
                 )
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+
         return http.build();
     }
 }

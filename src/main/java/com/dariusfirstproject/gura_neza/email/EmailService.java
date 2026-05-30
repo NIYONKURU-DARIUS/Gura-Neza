@@ -8,12 +8,15 @@ import org.thymeleaf.TemplateEngine;
 import com.dariusfirstproject.gura_neza.order.OrderResponse;
 import org.thymeleaf.context.Context;
 
+import java.math.BigDecimal;
+
 @Service
 @RequiredArgsConstructor
 public class EmailService {
 
     private final JavaMailSender mailSender;
     private final TemplateEngine templateEngine;
+    private final PdfReceiptService pdfReceiptService;
 
     public void sendVerificationEmail(String to, String name, String verificationLink) {
         try {
@@ -53,9 +56,59 @@ public class EmailService {
             helper.setSubject("Order Confirmation #" + order.getId());
             helper.setText(html, true);
 
+            // Attach PDF receipt
+            byte[] pdfBytes = pdfReceiptService.generateReceipt(order, name);
+            helper.addAttachment("receipt-order-" + order.getId() + ".pdf",
+                    new org.springframework.core.io.ByteArrayResource(pdfBytes));
+
             mailSender.send(message);
         } catch (Exception e) {
             throw new RuntimeException("Failed to send order confirmation email: " + e.getMessage());
+        }
+    }
+    // ✅ NEW — Wallet top-up notification
+    public void sendWalletTopUpEmail(String to, String name, BigDecimal amount, BigDecimal newBalance) {
+        try {
+            Context context = new Context();
+            context.setVariable("name", name);
+            context.setVariable("amount", amount);
+            context.setVariable("newBalance", newBalance);
+
+            String html = templateEngine.process("wallet-topup-email", context);
+
+            var message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+            helper.setTo(to);
+            helper.setFrom("noreply@guraneza.com");
+            helper.setSubject("Your Gura Neza wallet has been topped up");
+            helper.setText(html, true);
+
+            mailSender.send(message);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to send wallet top-up email: " + e.getMessage());
+        }
+    }
+
+    // ✅ NEW — Order cancellation notification
+    public void sendOrderCancellationEmail(String to, String name, Long orderId, BigDecimal totalPrice) {
+        try {
+            Context context = new Context();
+            context.setVariable("name", name);
+            context.setVariable("orderId", orderId);
+            context.setVariable("totalPrice", totalPrice);
+
+            String html = templateEngine.process("order-cancellation-email", context);
+
+            var message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+            helper.setTo(to);
+            helper.setFrom("noreply@guraneza.com");
+            helper.setSubject("Your order #" + orderId + " has been cancelled");
+            helper.setText(html, true);
+
+            mailSender.send(message);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to send cancellation email: " + e.getMessage());
         }
     }
 }
