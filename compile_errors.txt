@@ -1,0 +1,62 @@
+﻿mvn : WARNING: A 
+terminally deprecated 
+method in 
+sun.misc.Unsafe has 
+been called
+At line:1 char:1
++ mvn compile 2>&1 | 
+Out-File -FilePath 
+"compile_errors.txt" 
+-Encoding  ...
++ ~~~~~~~~~~~~~~~~
+    + CategoryInfo     
+         : 
+NotSpecified:     
+(WARNING: A term...h   
+ as been called:Strin  
+  g) [], RemoteExcepti 
+   on
+    + 
+FullyQualifiedErro    
+rId : NativeCommandE   
+ rror
+ 
+WARNING: sun.misc.Unsaf
+e::staticFieldBase has 
+been called by com.goog
+le.inject.internal.aop.
+HiddenClassDefiner (fil
+e:/C:/ProgramData/choco
+latey/lib/maven/apache-
+maven-3.9.11/lib/guice-
+5.1.0-classes.jar)
+WARNING: Please 
+consider reporting 
+this to the 
+maintainers of class co
+m.google.inject.interna
+l.aop.HiddenClassDefine
+r
+WARNING: sun.misc.Unsaf
+e::staticFieldBase 
+will be removed in a 
+future release
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------< com.DariusFirstProject:Gura_Neza >------------------
+[INFO] Building Gura_Neza 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ Gura_Neza ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] Copying 4 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.14.1:compile (default-compile) @ Gura_Neza ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  9.011 s
+[INFO] Finished at: 2026-05-31T16:09:49+02:00
+[INFO] ------------------------------------------------------------------------

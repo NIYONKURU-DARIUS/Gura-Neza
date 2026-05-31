@@ -42,6 +42,8 @@ public class CartService {
                         .id(item.getId())
                         .productId(item.getProduct().getId())
                         .productName(item.getProduct().getName())
+                        .imageUrl(item.getProduct().getImageUrl())
+                        .category(String.valueOf(item.getProduct().getCategory()))
                         .price(item.getProduct().getPrice())
                         .quantity(item.getQuantity())
                         .subtotal(item.getProduct().getPrice()
@@ -91,6 +93,7 @@ public class CartService {
                     .quantity(request.getQuantity())
                     .build();
             cartItemRepository.save(newItem);
+            cart.getItems().add(newItem); // Sync internal list
         }
 
         Cart updatedCart = cartRepository.findById(cart.getId())
@@ -103,6 +106,7 @@ public class CartService {
                 .orElseThrow(() -> new RuntimeException("Cart item not found"));
 
         if (quantity <= 0) {
+            item.getCart().getItems().remove(item);
             cartItemRepository.delete(item);
         } else {
             item.setQuantity(quantity);
@@ -121,21 +125,19 @@ public class CartService {
         Cart cart = cartRepository.findById(item.getCart().getId())
                 .orElseThrow(() -> new RuntimeException("Cart not found"));
 
+        cart.getItems().remove(item);
         cartItemRepository.delete(item);
 
-        Cart updatedCart = cartRepository.findById(cart.getId())
-                .orElseThrow(() -> new RuntimeException("Cart not found"));
-        return mapToResponse(updatedCart);
+        return mapToResponse(cart);
     }
 
     public CartResponse clearCart() {
         User user = getCurrentUser();
         Cart cart = getOrCreateCart(user);
-        cartItemRepository.deleteAll(cart.getItems());
+        cart.getItems().clear();
+        cartItemRepository.deleteAllByCartId(cart.getId());
 
-        Cart updatedCart = cartRepository.findById(cart.getId())
-                .orElseThrow(() -> new RuntimeException("Cart not found"));
-        return mapToResponse(updatedCart);
+        return mapToResponse(cart);
     }
 }
 

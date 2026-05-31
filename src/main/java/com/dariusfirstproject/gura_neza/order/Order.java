@@ -26,6 +26,9 @@ public class Order {
     private BigDecimal totalPrice;
     @Enumerated(EnumType.STRING)
     private OrderStatus orderStatus;
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private PaymentMethod paymentMethod = PaymentMethod.WALLET;
     private LocalDateTime createdAt;
     @ManyToOne
     @JoinColumn(name="user_id")

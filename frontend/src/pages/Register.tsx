@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Lock, User, UserPlus, ArrowLeft, Globe, AlertCircle } from 'lucide-react';
+import { Mail, Lock, User, UserPlus, ArrowLeft, Globe, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { authService } from '../services/authService';
 
 const Register: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -11,6 +12,8 @@ const Register: React.FC = () => {
     confirmPassword: ''
   });
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const [strength, setStrength] = useState(0);
   const navigate = useNavigate();
 
@@ -23,19 +26,33 @@ const Register: React.FC = () => {
     setStrength(s);
   }, [formData.password]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.password) {
       setError('Please fill in all fields');
-      setTimeout(() => setError(''), 3000);
       return;
     }
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
-      setTimeout(() => setError(''), 3000);
       return;
     }
-    navigate('/products');
+
+    setIsLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const response = await authService.register({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password
+      });
+      setSuccess(response.message || 'Registration successful! Please check your email to verify your account.');
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Registration failed');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const getStrengthColor = () => {
@@ -56,7 +73,6 @@ const Register: React.FC = () => {
       >
         <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 rotate-180" />
         
-        {/* Subtle Green Particles */}
         <div className="absolute inset-0 z-0 overflow-hidden">
             {[...Array(8)].map((_, i) => (
                 <motion.div 
@@ -114,94 +130,121 @@ const Register: React.FC = () => {
                 <span className="font-black text-xs uppercase">{error}</span>
               </motion.div>
             )}
+
+            {success && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-primary/10 border border-primary text-primary p-6 rounded-2xl flex flex-col items-center text-center gap-3 mb-6"
+              >
+                <CheckCircle2 size={40} />
+                <span className="font-bold text-sm tracking-tight">{success}</span>
+                <Link to="/login" className="btn-primary py-2 px-6 text-sm mt-2">Go to Login</Link>
+              </motion.div>
+            )}
           </AnimatePresence>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-s)]">Full Name</label>
-              <div className="relative group">
-                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-s)] group-focus-within:text-primary transition-colors" size={18} />
-                <input 
-                  type="text" 
-                  placeholder="John Doe"
-                  className="input-field pl-12 py-3.5"
-                  value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-s)]">Email Address</label>
-              <div className="relative group">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-s)] group-focus-within:text-primary transition-colors" size={18} />
-                <input 
-                  type="email" 
-                  placeholder="name@example.com"
-                  className="input-field pl-12 py-3.5"
-                  value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-s)]">Password</label>
-              <div className="relative group">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-s)] group-focus-within:text-primary transition-colors" size={18} />
-                <input 
-                  type="password" 
-                  placeholder="••••••••"
-                  className="input-field pl-12 py-3.5"
-                  value={formData.password}
-                  onChange={(e) => setFormData({...formData, password: e.target.value})}
-                />
-              </div>
-              <div className="pt-2 flex gap-1 items-center">
-                <div className="flex-1 h-1.5 rounded-full bg-[var(--border-c)] overflow-hidden flex">
-                  <motion.div 
-                    initial={{ width: 0 }}
-                    animate={{ width: `${(strength / 4) * 100}%` }}
-                    className={`h-full ${getStrengthColor()} transition-colors`}
+          {!success && (
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-s)]">Full Name</label>
+                <div className="relative group">
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-s)] group-focus-within:text-primary transition-colors" size={18} />
+                  <input 
+                    type="text" 
+                    placeholder="John Doe"
+                    className="input-field pl-12 py-3.5"
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    disabled={isLoading}
                   />
                 </div>
-                <span className="text-[10px] font-black text-[var(--text-s)] uppercase ml-2">
-                  {strength === 4 ? 'EXCELLENT' : 'STRENGTH'}
-                </span>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-s)]">Confirm Password</label>
-              <div className="relative group">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-s)] group-focus-within:text-primary transition-colors" size={18} />
-                <input 
-                  type="password" 
-                  placeholder="••••••••"
-                  className="input-field pl-12 py-3.5"
-                  value={formData.confirmPassword}
-                  onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
-                />
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-s)]">Email Address</label>
+                <div className="relative group">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-s)] group-focus-within:text-primary transition-colors" size={18} />
+                  <input 
+                    type="email" 
+                    placeholder="name@example.com"
+                    className="input-field pl-12 py-3.5"
+                    value={formData.email}
+                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                    disabled={isLoading}
+                  />
+                </div>
               </div>
-            </div>
 
-            <button type="submit" className="btn-primary py-4 text-xl font-black rounded-2xl flex items-center justify-center gap-3 mt-4">
-              <UserPlus size={24} /> Create Account
-            </button>
-          </form>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-s)]">Password</label>
+                <div className="relative group">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-s)] group-focus-within:text-primary transition-colors" size={18} />
+                  <input 
+                    type="password" 
+                    placeholder="••••••••"
+                    className="input-field pl-12 py-3.5"
+                    value={formData.password}
+                    onChange={(e) => setFormData({...formData, password: e.target.value})}
+                    disabled={isLoading}
+                  />
+                </div>
+                <div className="pt-2 flex gap-1 items-center">
+                  <div className="flex-1 h-1.5 rounded-full bg-[var(--border-c)] overflow-hidden flex">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${(strength / 4) * 100}%` }}
+                      className={`h-full ${getStrengthColor()} transition-colors`}
+                    />
+                  </div>
+                  <span className="text-[10px] font-black text-[var(--text-s)] uppercase ml-2">
+                    {strength === 4 ? 'EXCELLENT' : 'STRENGTH'}
+                  </span>
+                </div>
+              </div>
 
-          <div className="relative my-8">
-            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-[var(--border-c)]"></div></div>
-            <div className="relative flex justify-center"><span className="bg-[var(--bg-main)] px-4 text-[10px] uppercase font-black text-[var(--text-s)] tracking-widest">Or sign up with</span></div>
-          </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-s)]">Confirm Password</label>
+                <div className="relative group">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-s)] group-focus-within:text-primary transition-colors" size={18} />
+                  <input 
+                    type="password" 
+                    placeholder="••••••••"
+                    className="input-field pl-12 py-3.5"
+                    value={formData.confirmPassword}
+                    onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
+                    disabled={isLoading}
+                  />
+                </div>
+              </div>
 
-          <button className="w-full border-2 border-[var(--border-c)] bg-[var(--card-bg)] py-4 rounded-xl flex items-center justify-center gap-3 font-black text-[var(--text-p)] hover:border-primary transition-all group shadow-sm">
-            <Globe size={18} className="text-[var(--text-s)] group-hover:text-primary transition-colors" /> Google Account
-          </button>
+              <button 
+                type="submit" 
+                disabled={isLoading}
+                className="btn-primary py-4 text-xl font-black rounded-2xl flex items-center justify-center gap-3 mt-4 disabled:opacity-50"
+              >
+                {isLoading ? <Loader2 size={24} className="animate-spin" /> : <UserPlus size={24} />} 
+                {isLoading ? 'Creating...' : 'Create Account'}
+              </button>
+            </form>
+          )}
 
-          <p className="text-center mt-12 text-[var(--text-s)] font-bold">
-            Already have an account? <Link to="/login" className="text-primary font-black ml-1 hover:underline tracking-tight">Sign in</Link>
-          </p>
+          {!success && (
+            <>
+              <div className="relative my-8">
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-[var(--border-c)]"></div></div>
+                <div className="relative flex justify-center"><span className="bg-[var(--bg-main)] px-4 text-[10px] uppercase font-black text-[var(--text-s)] tracking-widest">Or sign up with</span></div>
+              </div>
+
+              <button className="w-full border-2 border-[var(--border-c)] bg-[var(--card-bg)] py-4 rounded-xl flex items-center justify-center gap-3 font-black text-[var(--text-p)] hover:border-primary transition-all group shadow-sm">
+                <Globe size={18} className="text-[var(--text-s)] group-hover:text-primary transition-colors" /> Google Account
+              </button>
+
+              <p className="text-center mt-12 text-[var(--text-s)] font-bold">
+                Already have an account? <Link to="/login" className="text-primary font-black ml-1 hover:underline tracking-tight">Sign in</Link>
+              </p>
+            </>
+          )}
         </motion.div>
       </div>
     </div>

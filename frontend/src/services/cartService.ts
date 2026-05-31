@@ -1,37 +1,45 @@
-import { type Product } from './productService';
+import api from './api';
 
-export interface CartItem {
+export interface CartItemResponse {
   id: number;
-  product: Product;
+  productId: number;
+  productName: string;
+  imageUrl: string;
+  category: string;
+  price: number;
   quantity: number;
+  subtotal: number;
 }
 
-let cart: CartItem[] = [];
+export interface CartResponse {
+  id: number;
+  items: CartItemResponse[];
+  totalPrice: number;
+}
 
 export const cartService = {
-  getCart: () => cart,
-  
-  addToCart: (product: Product) => {
-    const existing = cart.find(item => item.product.id === product.id);
-    if (existing) {
-      existing.quantity += 1;
-    } else {
-      cart.push({ id: Math.random(), product, quantity: 1 });
-    }
-    return [...cart];
+  getCart: async (): Promise<CartResponse> => {
+    const response = await api.get('/cart');
+    return response.data;
   },
-  
-  removeFromCart: (itemId: number) => {
-    cart = cart.filter(item => item.id !== itemId);
-    return [...cart];
+
+  addToCart: async (productId: number, quantity: number = 1): Promise<CartResponse> => {
+    const response = await api.post('/cart/add', { productId, quantity });
+    return response.data;
   },
-  
-  clearCart: () => {
-    cart = [];
-    return cart;
+
+  updateItem: async (itemId: number, quantity: number): Promise<CartResponse> => {
+    const response = await api.put(`/cart/update/${itemId}?quantity=${quantity}`);
+    return response.data;
   },
-  
-  getTotal: () => {
-    return cart.reduce((total, item) => total + (item.product.price * item.quantity), 0);
+
+  removeItem: async (itemId: number): Promise<CartResponse> => {
+    const response = await api.delete(`/cart/remove/${itemId}`);
+    return response.data;
+  },
+
+  clearCart: async (): Promise<CartResponse> => {
+    const response = await api.delete('/cart/clear');
+    return response.data;
   }
 };

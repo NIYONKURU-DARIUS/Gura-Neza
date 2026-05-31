@@ -35,8 +35,11 @@ public class OrderService {
     private final WalletRepository walletRepository;
     private final TransactionRepository transactionRepository;
 
-    public OrderResponse checkout() {
+    // ── USER: place order ────────────────────────────────────────────────
+    public OrderResponse checkout(CheckoutRequest request) {
         User user = getCurrentUser();
+        PaymentMethod paymentMethod = (request != null && request.getPaymentMethod() != null)
+                ? request.getPaymentMethod() : PaymentMethod.WALLET;
 
         Cart cart = cartRepository.findByUserId(user.getId())
                 .orElseThrow(() -> new RuntimeException("Cart not found"));
@@ -50,29 +53,37 @@ public class OrderService {
                         .multiply(BigDecimal.valueOf(item.getQuantity())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // ✅ REMOVED: wallet balance check and deduction
-        // Money is only deducted when admin confirms the order
-
-        // Loop 1 — check stock only, save nothing
-        for (CartItem cartItem : cart.getItems()) {
-            if (cartItem.getProduct().getStock() < cartItem.getQuantity()) {
-                throw new RuntimeException("Insufficient stock for: " + cartItem.getProduct().getName());
+        // For WALLET payment, verify balance upfront
+        if (paymentMethod == PaymentMethod.WALLET) {
+            Wallet wallet = walletRepository.findByUserId(user.getId())
+                    .orElseThrow(() -> new RuntimeException("Wallet not found"));
+            if (wallet.getBalance().compareTo(total) < 0) {
+                throw new RuntimeException(
+                        "Insufficient wallet balance. Please top up or choose Pay Later.");
             }
         }
 
-        // Save order as PENDING
+        // Check stock
+        for (CartItem cartItem : cart.getItems()) {
+            if (cartItem.getProduct().getStock() < cartItem.getQuantity()) {
+                throw new RuntimeException(
+                        "Insufficient stock for: " + cartItem.getProduct().getName());
+            }
+        }
+
+        // Save order
         Order order = Order.builder()
                 .user(user)
                 .totalPrice(total)
                 .orderStatus(OrderStatus.PENDING)
+                .paymentMethod(paymentMethod)
                 .createdAt(LocalDateTime.now())
                 .build();
         orderRepository.save(order);
 
-        // Loop 2 — save order items and reduce stock
+        // Save items and reduce stock
         for (CartItem cartItem : cart.getItems()) {
             Product product = cartItem.getProduct();
-
             OrderItem orderItem = OrderItem.builder()
                     .order(order)
                     .product(product)
@@ -80,12 +91,9 @@ public class OrderService {
                     .price(product.getPrice())
                     .build();
             orderItemRepository.save(orderItem);
-
             product.setStock(product.getStock() - cartItem.getQuantity());
             productRepository.save(product);
         }
-
-        // ✅ REMOVED: wallet.setBalance(...) — no deduction here anymore
 
         cart.getItems().clear();
         cartRepository.save(cart);
@@ -94,19 +102,22 @@ public class OrderService {
                 .orElseThrow(() -> new RuntimeException("Order not found"));
         savedOrder.setItems(orderItemRepository.findByOrderId(order.getId()));
 
-        orderEventProducer.sendOrderPlacedEvent(OrderPlacedEvent.builder()
-                .orderId(savedOrder.getId())
-                .userId(user.getId())
-                .totalPrice(total)
-                .createdAt(LocalDateTime.now())
-                .build());
-
-        // ✅ REMOVED: order confirmation email — moved to confirmOrder()
+        // Fire-and-forget — Kafka may not be running in dev
+        try {
+            orderEventProducer.sendOrderPlacedEvent(OrderPlacedEvent.builder()
+                    .orderId(savedOrder.getId())
+                    .userId(user.getId())
+                    .totalPrice(total)
+                    .createdAt(LocalDateTime.now())
+                    .build());
+        } catch (Exception e) {
+            // Non-critical — order is already saved
+        }
 
         return mapToResponse(savedOrder);
     }
 
-    // ✅ NEW — ADMIN confirms the order: deducts wallet, sends confirmation email
+    // ── ADMIN: confirm order ─────────────────────────────────────────────
     @PreAuthorize("hasAuthority('ADMIN')")
     public OrderResponse confirmOrder(Long orderId) {
         Order order = orderRepository.findById(orderId)
@@ -118,39 +129,47 @@ public class OrderService {
 
         User user = order.getUser();
 
-        Wallet wallet = walletRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new RuntimeException("Wallet not found"));
+        // Deduct wallet only for WALLET payment
+        if (order.getPaymentMethod() == PaymentMethod.WALLET) {
+            Wallet wallet = walletRepository.findByUserId(user.getId())
+                    .orElseThrow(() -> new RuntimeException("Wallet not found"));
+            if (wallet.getBalance().compareTo(order.getTotalPrice()) < 0) {
+                throw new RuntimeException("User has insufficient wallet balance");
+            }
+            wallet.setBalance(wallet.getBalance().subtract(order.getTotalPrice()));
+            walletRepository.save(wallet);
 
-        if (wallet.getBalance().compareTo(order.getTotalPrice()) < 0) {
-            throw new RuntimeException("User has insufficient wallet balance");
+            transactionRepository.save(Transaction.builder()
+                    .wallet(wallet)
+                    .amount(order.getTotalPrice())
+                    .type(TransactionType.DEBIT)
+                    .description("Order #" + order.getId() + " payment")
+                    .timestamp(LocalDateTime.now())
+                    .build());
         }
+        // PAY_LATER: no wallet deduction — collected on delivery
 
-        // Deduct wallet
-        wallet.setBalance(wallet.getBalance().subtract(order.getTotalPrice()));
-        walletRepository.save(wallet);
-
-        // Save DEBIT transaction
-        Transaction transaction = Transaction.builder()
-                .wallet(wallet)
-                .amount(order.getTotalPrice())
-                .type(TransactionType.DEBIT)
-                .timestamp(LocalDateTime.now())
-                .build();
-        transactionRepository.save(transaction);
-
-        // Update order status
         order.setOrderStatus(OrderStatus.CONFIRMED);
         orderRepository.save(order);
-
         order.setItems(orderItemRepository.findByOrderId(order.getId()));
 
-        // Send confirmation email to user
-        emailService.sendOrderConfirmationEmail(user.getEmail(), user.getName(), mapToResponse(order));
+        // Fire-and-forget
+        try {
+            orderEventProducer.sendOrderConfirmedEvent(OrderConfirmedEvent.builder()
+                    .orderId(order.getId())
+                    .userId(user.getId())
+                    .userEmail(user.getEmail())
+                    .userName(user.getName())
+                    .totalAmount(order.getTotalPrice())
+                    .build());
+        } catch (Exception e) {
+            // Non-critical
+        }
 
         return mapToResponse(order);
     }
 
-    // ✅ NEW — ADMIN marks order as delivered
+    // ── ADMIN: mark as delivered ─────────────────────────────────────────
     @PreAuthorize("hasAuthority('ADMIN')")
     public OrderResponse deliverOrder(Long orderId) {
         Order order = orderRepository.findById(orderId)
@@ -162,15 +181,70 @@ public class OrderService {
 
         order.setOrderStatus(OrderStatus.DELIVERED);
         orderRepository.save(order);
-
         order.setItems(orderItemRepository.findByOrderId(order.getId()));
         return mapToResponse(order);
     }
 
+    // ── ADMIN: cancel order ──────────────────────────────────────────────
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public OrderResponse cancelOrder(Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+
+        if (order.getOrderStatus() == OrderStatus.DELIVERED) {
+            throw new RuntimeException("Cannot cancel a delivered order");
+        }
+        if (order.getOrderStatus() == OrderStatus.CANCELLED) {
+            throw new RuntimeException("Order is already cancelled");
+        }
+
+        User user = order.getUser();
+
+        // Refund wallet if WALLET payment was already confirmed (money deducted)
+        if (order.getPaymentMethod() == PaymentMethod.WALLET
+                && order.getOrderStatus() == OrderStatus.CONFIRMED) {
+            Wallet wallet = walletRepository.findByUserId(user.getId())
+                    .orElseThrow(() -> new RuntimeException("Wallet not found"));
+            wallet.setBalance(wallet.getBalance().add(order.getTotalPrice()));
+            walletRepository.save(wallet);
+
+            transactionRepository.save(Transaction.builder()
+                    .wallet(wallet)
+                    .amount(order.getTotalPrice())
+                    .type(TransactionType.CREDIT)
+                    .description("Refund for cancelled Order #" + order.getId())
+                    .timestamp(LocalDateTime.now())
+                    .build());
+        }
+
+        // Restore stock
+        order.setItems(orderItemRepository.findByOrderId(order.getId()));
+        order.getItems().forEach(item -> {
+            Product product = item.getProduct();
+            product.setStock(product.getStock() + item.getQuantity());
+            productRepository.save(product);
+        });
+
+        order.setOrderStatus(OrderStatus.CANCELLED);
+        orderRepository.save(order);
+        return mapToResponse(order);
+    }
+
+    // ── ADMIN: get all orders ────────────────────────────────────────────
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public List<OrderResponse> getAllOrders() {
+        return orderRepository.findAll().stream()
+                .map(order -> {
+                    order.setItems(orderItemRepository.findByOrderId(order.getId()));
+                    return mapToResponse(order);
+                })
+                .collect(Collectors.toList());
+    }
+
+    // ── USER: get own orders ─────────────────────────────────────────────
     public List<OrderResponse> getUserOrders() {
         User user = getCurrentUser();
-        return orderRepository.findByUserId(user.getId())
-                .stream()
+        return orderRepository.findByUserId(user.getId()).stream()
                 .map(order -> {
                     order.setItems(orderItemRepository.findByOrderId(order.getId()));
                     return mapToResponse(order);
@@ -189,15 +263,21 @@ public class OrderService {
         return mapToResponse(order);
     }
 
+    public OrderResponse getOrderByIdForListener(Long id) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+        order.setItems(orderItemRepository.findByOrderId(order.getId()));
+        return mapToResponse(order);
+    }
+
     private User getCurrentUser() {
         String email = SecurityContextHolder.getContext()
-                .getAuthentication()
-                .getName();
+                .getAuthentication().getName();
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
 
-    private OrderResponse mapToResponse(Order order) {
+    public OrderResponse mapToResponse(Order order) {
         List<OrderItemResponse> items = order.getItems().stream()
                 .map(item -> OrderItemResponse.builder()
                         .id(item.getId())
@@ -216,6 +296,9 @@ public class OrderService {
                 .totalPrice(order.getTotalPrice())
                 .createdAt(order.getCreatedAt())
                 .items(items)
+                .paymentMethod(order.getPaymentMethod())
+                .userName(order.getUser() != null ? order.getUser().getName() : null)
+                .userEmail(order.getUser() != null ? order.getUser().getEmail() : null)
                 .build();
     }
 }

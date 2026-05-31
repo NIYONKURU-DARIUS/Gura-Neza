@@ -1,124 +1,181 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Wallet, ArrowUpRight, ArrowDownLeft, History, ShoppingBag, User } from 'lucide-react';
+import { Wallet, ArrowUpRight, ArrowDownLeft, History, ShoppingBag, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useStore } from '../context/store';
+import { walletService, type TransactionResponse } from '../services/walletService';
+import { orderService, type OrderResponse } from '../services/orderService';
+import Navbar from '../components/Navbar';
 
 const Dashboard: React.FC = () => {
-  const balance = 1250.00;
-  
-  const transactions = [
-    { id: 1, type: 'DEBIT', amount: 299.99, title: 'Premium Emerald Watch', date: '2026-05-28' },
-    { id: 2, type: 'CREDIT', amount: 500.00, title: 'Wallet Top-up', date: '2026-05-25' },
-    { id: 3, type: 'DEBIT', amount: 45.50, title: 'Delivery Fee', date: '2026-05-24' }
-  ];
+  const { user } = useStore();
+  const [transactions, setTransactions] = useState<TransactionResponse[]>([]);
+  const [orders, setOrders] = useState<OrderResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [txns, ords] = await Promise.all([
+          walletService.getTransactions(),
+          orderService.getOrders(),
+        ]);
+        setTransactions(txns);
+        setOrders(ords);
+      } catch (err) {
+        console.error('Failed to load dashboard data', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   return (
-    <div className="dashboard-page" style={{ minHeight: '100vh', backgroundColor: 'var(--bg)' }}>
-      {/* Sidebar / Nav */}
-      <nav className="glass" style={{
-        padding: '1.5rem 5%',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '2rem'
-      }}>
-        <Link to="/" style={{ fontWeight: 900, color: 'var(--primary)', fontSize: '1.5rem' }}>GURA NEZA</Link>
-        <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
-          <Link to="/products" style={{ fontWeight: 600 }}>Shop</Link>
-          <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-            <User size={20} />
-          </div>
-        </div>
-      </nav>
+    <div className="min-h-screen bg-[var(--bg-main)] font-body transition-colors duration-500">
+      <Navbar />
 
-      <main style={{ padding: '0 5% 100px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '2rem' }}>
+      <main className="pt-28 px-4 sm:px-[5%] max-w-5xl mx-auto pb-20">
+        <header className="mb-12">
+          <h1 className="text-3xl sm:text-4xl font-black text-[var(--text-p)] mb-2 italic tracking-tighter">
+            Welcome back, {user?.name?.split(' ')[0] || 'there'}.
+          </h1>
+          <p className="text-[var(--text-s)] font-bold">Here's your account overview.</p>
+        </header>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
           {/* Wallet Card */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="card" 
-            style={{ 
-              background: 'linear-gradient(135deg, var(--primary) 0%, #065f46 100%)', 
-              color: 'white', 
+            className="card"
+            style={{
+              background: 'linear-gradient(135deg, var(--primary) 0%, #065f46 100%)',
+              color: 'white',
               padding: '2.5rem',
               border: 'none',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
-              minHeight: '240px'
+              minHeight: '220px',
+              borderRadius: '2rem',
             }}
           >
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
-                <span style={{ fontSize: '1.1rem', opacity: 0.9, fontWeight: 500 }}>Gura Wallet Balance</span>
-                <Wallet size={32} opacity={0.5} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+                <span style={{ fontSize: '1rem', opacity: 0.9, fontWeight: 700 }}>Gura Wallet Balance</span>
+                <Wallet size={28} opacity={0.5} />
               </div>
-              <h2 style={{ fontSize: '3.5rem', fontWeight: 800, marginBottom: '0.5rem' }}>${balance.toLocaleString()}</h2>
+              <h2 style={{ fontSize: '3rem', fontWeight: 800, marginBottom: '0.5rem' }}>
+                ${(user?.walletBalance ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </h2>
             </div>
             <div style={{ display: 'flex', gap: '1rem' }}>
-              <button className="btn" style={{ backgroundColor: 'white', color: 'var(--primary)', padding: '0.6rem 1.25rem' }}>Top Up</button>
-              <button className="btn" style={{ backgroundColor: 'rgba(255,255,255,0.2)', color: 'white', padding: '0.6rem 1.25rem' }}>Send</button>
+              <Link to="/wallet">
+                <button className="btn" style={{ backgroundColor: 'white', color: 'var(--primary)', padding: '0.6rem 1.25rem', borderRadius: '0.75rem', fontWeight: 800 }}>
+                  View Wallet
+                </button>
+              </Link>
             </div>
           </motion.div>
 
           {/* Quick Stats */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="bg-[var(--card-bg)] border border-[var(--border-c)] rounded-[2rem] p-6 flex flex-col justify-center"
+            >
               <ShoppingBag size={24} color="var(--primary)" style={{ marginBottom: '1rem' }} />
-              <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Recent Orders</span>
-              <h3 style={{ fontSize: '1.5rem' }}>12</h3>
-            </div>
-            <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <span className="text-[var(--text-s)] text-xs font-black uppercase tracking-widest mb-1">Orders</span>
+              {loading ? (
+                <Loader2 size={20} className="animate-spin text-primary" />
+              ) : (
+                <h3 className="text-2xl font-black text-[var(--text-p)] italic">{orders.length}</h3>
+              )}
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+              className="bg-[var(--card-bg)] border border-[var(--border-c)] rounded-[2rem] p-6 flex flex-col justify-center"
+            >
               <History size={24} color="var(--primary)" style={{ marginBottom: '1rem' }} />
-              <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Transactions</span>
-              <h3 style={{ fontSize: '1.5rem' }}>48</h3>
-            </div>
+              <span className="text-[var(--text-s)] text-xs font-black uppercase tracking-widest mb-1">Transactions</span>
+              {loading ? (
+                <Loader2 size={20} className="animate-spin text-primary" />
+              ) : (
+                <h3 className="text-2xl font-black text-[var(--text-p)] italic">{transactions.length}</h3>
+              )}
+            </motion.div>
           </div>
         </div>
 
-        {/* Transaction History */}
-        <section style={{ marginTop: '40px' }}>
-          <h2 style={{ fontSize: '1.5rem', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <History size={24} /> Recent Transactions
+        {/* Recent Transactions */}
+        <section>
+          <h2 className="text-xl font-black text-[var(--text-p)] mb-6 flex items-center gap-3 italic tracking-tighter">
+            <History size={22} className="text-primary" /> Recent Transactions
           </h2>
-          <div className="card" style={{ padding: '0' }}>
-            {transactions.map((t, i) => (
-              <div key={t.id} style={{ 
-                padding: '1.25rem 2rem', 
-                borderBottom: i === transactions.length - 1 ? 'none' : '1px solid var(--border)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                  <div style={{ 
-                    width: '40px', 
-                    height: '40px', 
-                    borderRadius: '50%', 
-                    backgroundColor: t.type === 'DEBIT' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: t.type === 'DEBIT' ? '#ef4444' : 'var(--primary)'
-                  }}>
-                    {t.type === 'DEBIT' ? <ArrowUpRight size={20} /> : <ArrowDownLeft size={20} />}
-                  </div>
-                  <div>
-                    <h4 style={{ fontSize: '1rem' }}>{t.title}</h4>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{t.date}</span>
-                  </div>
-                </div>
-                <span style={{ 
-                  fontWeight: 700, 
-                  color: t.type === 'DEBIT' ? '#ef4444' : 'var(--primary)',
-                  fontSize: '1.1rem'
-                }}>
-                  {t.type === 'DEBIT' ? '-' : '+'}${t.amount.toFixed(2)}
-                </span>
+
+          <div className="bg-[var(--card-bg)] rounded-[2rem] border border-[var(--border-c)] overflow-hidden shadow-sm">
+            {loading ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="animate-spin text-primary" size={32} />
               </div>
-            ))}
+            ) : transactions.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 opacity-30">
+                <History size={48} />
+                <p className="font-black uppercase tracking-widest text-[10px] mt-4">No transactions yet</p>
+              </div>
+            ) : (
+              transactions.slice(0, 5).map((t, i) => (
+                <div
+                  key={t.id}
+                  className={`px-8 py-5 flex justify-between items-center hover:bg-[var(--hover-c)] transition-all ${
+                    i !== Math.min(transactions.length, 5) - 1 ? 'border-b border-[var(--border-c)]' : ''
+                  }`}
+                >
+                  <div className="flex gap-4 items-center">
+                    <div
+                      className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        t.type === 'DEBIT'
+                          ? 'bg-red/10 text-red'
+                          : 'bg-primary/10 text-primary'
+                      }`}
+                    >
+                      {t.type === 'DEBIT' ? <ArrowUpRight size={18} /> : <ArrowDownLeft size={18} />}
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-black text-[var(--text-p)]">
+                        {t.description || (t.type === 'CREDIT' ? 'Wallet Top-up' : 'Order Payment')}
+                      </h4>
+                      <span className="text-[10px] font-bold text-[var(--text-s)]">
+                        {new Date(t.timestamp).toLocaleDateString(undefined, {
+                          year: 'numeric', month: 'short', day: 'numeric',
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                  <span
+                    className={`font-black text-base italic ${
+                      t.type === 'DEBIT' ? 'text-red' : 'text-primary'
+                    }`}
+                  >
+                    {t.type === 'DEBIT' ? '-' : '+'}${Number(t.amount).toFixed(2)}
+                  </span>
+                </div>
+              ))
+            )}
           </div>
+
+          {transactions.length > 5 && (
+            <div className="text-center mt-6">
+              <Link to="/wallet" className="text-primary font-black text-[10px] uppercase tracking-widest hover:underline">
+                View all transactions →
+              </Link>
+            </div>
+          )}
         </section>
       </main>
     </div>

@@ -25,6 +25,8 @@ public class Transaction {
     private TransactionType type;
     @Column(nullable=false)
     private LocalDateTime timestamp;
+    @Column
+    private String description;
     @ManyToOne
     @JoinColumn(name="wallet_id")
     private Wallet wallet;

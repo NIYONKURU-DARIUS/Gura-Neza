@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  /* GURA NEZA COLOR SYSTEM - LIGHT MODE DEFAULTS */
+  /* GURA NEZA COLOR SYSTEM - COMPACT EDITION */
   --color-primary: #2E7D32;
   --color-primary-light: #81C784;
   --color-fresh: #F1F8E9;
@@ -11,50 +11,44 @@
   --color-red: #C62828;
   --color-gold: #FFD700;
 
-  /* DARK MODE OVERRIDES (using custom variables to handle logic) */
-  --color-dark-bg: #121212;
-  --color-dark-card: #1E1E1E;
-  --color-dark-input: #2A2A2A;
-  --color-dark-border: #2C2C2C;
+  /* DARK MODE OVERRIDES */
+  --color-dark-bg: #0A0A0A;
+  --color-dark-card: #141414;
+  --color-dark-input: #1C1C1C;
+  --color-dark-border: #222222;
   --color-dark-text-p: #EEEEEE;
-  --color-dark-text-s: #AAAAAA;
+  --color-dark-text-s: #999999;
   --color-border-c: var(--border-c);
 
-  /* TYPOGRAPHY */
-  --font-headers: "Poppins", sans-serif;
+  /* TYPOGRAPHY - SLIM */
+  --font-headers: "Outfit", "Poppins", sans-serif;
   --font-body: "Inter", sans-serif;
   --font-mono-price: "Roboto Mono", monospace;
-
-  /* ANIMATIONS */
-  --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  --animate-float: float 3s ease-in-out infinite;
 }
 
 @layer base {
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&family=Roboto+Mono:wght@700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;600;700;900&family=Roboto+Mono:wght@700&display=swap');
 
   :root {
     --bg-main: #F4F4F4;
     --card-bg: #FFFFFF;
     --navbar-bg: #F4F4F4;
-    --text-p: #212121;
-    --text-s: #757575;
-    --border-c: #E0E0E0;
+    --text-p: #111111;
+    --text-s: #666666;
+    --border-c: #EBEBEB;
     --input-bg: #FFFFFF;
     --hover-c: #F1F8E9;
   }
 
   .dark {
-    --bg-main: #121212;
-    --card-bg: #1E1E1E;
-    --navbar-bg: #1A1A1A;
-    --text-p: #EEEEEE;
-    --text-s: #AAAAAA;
-    --border-c: #2C2C2C;
-    --input-bg: #2A2A2A;
-    --hover-c: #2D2D2D;
-    
-    /* Green adjustment for dark mode */
+    --bg-main: #0A0A0A;
+    --card-bg: #141414;
+    --navbar-bg: #0D0D0D;
+    --text-p: #FAFAFA;
+    --text-s: #888888;
+    --border-c: #1F1F1F;
+    --input-bg: #1A1A1A;
+    --hover-c: #222222;
     --color-primary: #4CAF50;
   }
 
@@ -62,98 +56,85 @@
     background-color: var(--bg-main);
     color: var(--text-p);
     font-family: 'Inter', sans-serif;
-    font-size: 14px; /* Reduced from default 16px */
+    font-size: 13px; /* Compact base size */
     -webkit-font-smoothing: antialiased;
-    transition: background-color 0.5s ease, color 0.5s ease;
-    line-height: 1.5;
+    transition: background-color 0.4s ease, color 0.4s ease;
+    line-height: 1.4;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Poppins', sans-serif;
-    line-height: 1.1;
-    letter-spacing: -0.02em;
+    font-family: 'Outfit', sans-serif;
+    line-height: 1.0;
+    letter-spacing: -0.04em;
   }
 
-  /* Tighter utility scale for global compactness */
-  .text-xs { font-size: 0.65rem; }
-  .text-sm { font-size: 0.75rem; }
-  .text-base { font-size: 0.875rem; }
-  .text-lg { font-size: 1rem; }
-  .text-xl { font-size: 1.125rem; }
-  .text-2xl { font-size: 1.25rem; }
-  .text-3xl { font-size: 1.75rem; }
-  .text-4xl { font-size: 2.25rem; }
-  .text-5xl { font-size: 3rem; }
-  .text-6xl { font-size: 3.75rem; }
+  /* SLIM UTILITY SCALE */
+  .text-xs { font-size: 0.6rem; }
+  .text-sm { font-size: 0.7rem; }
+  .text-base { font-size: 0.8rem; }
+  .text-lg { font-size: 0.9rem; }
+  .text-xl { font-size: 1rem; }
+  .text-2xl { font-size: 1.125rem; }
+  .text-3xl { font-size: 1.5rem; }
+  .text-4xl { font-size: 2rem; }
+  .text-5xl { font-size: 2.5rem; }
+  .text-6xl { font-size: 3.5rem; }
+  .text-8xl { font-size: 5rem; } /* Reduced from previously huge sizes */
 
   * {
     @apply border-border-c;
     box-sizing: border-box;
   }
-
-  /* Global: buttons must never overflow their container */
-  button {
-    overflow: hidden;
-    min-width: 0;
-    max-width: 100%;
-    text-overflow: ellipsis;
-  }
 }
 
 @layer components {
   .btn-primary {
-    @apply bg-primary text-white font-black py-2 px-6 rounded-xl transition-all duration-300 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary/20 overflow-hidden whitespace-nowrap;
+    @apply bg-primary text-white font-black py-1.5 px-4 rounded-lg transition-all duration-300 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-primary/10 overflow-hidden whitespace-nowrap text-[10px] uppercase tracking-widest;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
-    min-width: 0;
-    max-width: 100%;
+    gap: 0.4rem;
   }
   
   .glass {
-    @apply backdrop-blur-xl border-white/20;
-    background-color: rgba(var(--navbar-bg), 0.7);
+    @apply backdrop-blur-md border-white/10;
+    background-color: rgba(var(--card-bg), 0.6);
   }
 
   .card {
-    @apply rounded-[2.5rem] p-8 shadow-sm transition-all duration-500 border overflow-hidden;
+    @apply rounded-2xl p-6 shadow-sm transition-all duration-300 border overflow-hidden;
     background-color: var(--card-bg);
     border-color: var(--border-c);
   }
 
   .card:hover {
-    @apply shadow-2xl -translate-y-2;
-    box-shadow: 0 10px 40px -10px rgba(0,0,0,0.1);
-  }
-
-  .dark .card:hover {
-    box-shadow: 0 8px 25px rgba(76, 175, 80, 0.15);
+    @apply shadow-lg -translate-y-1;
   }
 
   .input-field {
-    @apply w-full px-5 py-3 rounded-2xl outline-none border transition-all duration-200 font-bold;
+    @apply w-full px-4 py-2 rounded-xl outline-none border transition-all duration-200 font-bold text-xs;
     background-color: var(--input-bg);
     border-color: var(--border-c);
     color: var(--text-p);
   }
 
   .input-field:focus {
-    @apply border-primary ring-4 ring-primary/10;
+    @apply border-primary ring-2 ring-primary/5;
   }
 }
 
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
-}
-
 .custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-  @apply bg-transparent;
+  width: 4px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  @apply bg-primary/20 rounded-full hover:bg-primary/40 transition-colors;
+  @apply bg-primary/30 rounded-full hover:bg-primary/50 transition-colors;
 }
+
+@keyframes slow-zoom {
+  0% { transform: scale(1.0); }
+  100% { transform: scale(1.1); }
+}
+.animate-slow-zoom {
+  animation: slow-zoom 20s linear infinite alternate;
+}
+

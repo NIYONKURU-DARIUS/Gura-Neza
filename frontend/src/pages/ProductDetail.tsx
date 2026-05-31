@@ -12,6 +12,7 @@ const ProductDetail: React.FC = () => {
   const { id } = useParams();
   const { addToCart } = useStore();
   const [product, setProduct] = React.useState<Product | null>(null);
+  const [related, setRelated] = React.useState<Product[]>([]);
   const [qty, setQty] = React.useState(1);
   const [activeTab, setActiveTab] = React.useState('description');
   const [loading, setLoading] = React.useState(true);
@@ -19,20 +20,24 @@ const ProductDetail: React.FC = () => {
   React.useEffect(() => {
     const fetchProduct = async () => {
       setLoading(true);
-      const allProducts = await productService.getAllProducts();
-      const found = allProducts.find(p => p.id === Number(id));
-      setProduct(found || null);
-      setLoading(false);
+      try {
+        const found = await productService.getProductById(Number(id));
+        setProduct(found);
+        // Fetch related products from same category, exclude current
+        const all = await productService.getAllProducts();
+        const relatedItems = all
+          .filter(p => p.category === found.category && p.id !== found.id)
+          .slice(0, 3);
+        setRelated(relatedItems);
+      } catch {
+        setProduct(null);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchProduct();
     window.scrollTo(0, 0);
   }, [id]);
-
-  // Related products mock
-  const related = [
-    { id: 2, name: 'Wireless Headphones', category: 'Electronics', price: 199.50, image: 'https://via.placeholder.com/300?text=Headphones', description: "" },
-    { id: 3, name: 'Smart Laptop', category: 'Electronics', price: 1299.00, image: 'https://via.placeholder.com/300?text=Laptop', description: "" }
-  ];
 
   if (loading) return <div className="min-h-screen bg-[var(--bg-main)] flex items-center justify-center"><div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
   if (!product) return <div className="min-h-screen bg-[var(--bg-main)] flex items-center justify-center text-[var(--text-p)] font-black text-2xl italic">Product Not Found.</div>;
@@ -63,7 +68,7 @@ const ProductDetail: React.FC = () => {
                <motion.img 
                 animate={{ scale: 1 }}
                 whileHover={{ scale: 1.1 }}
-                src={product.image} 
+                src={product.imageUrl} 
                 className="w-full h-full object-contain mix-blend-multiply transition-transform duration-700" 
                 alt={product.name}
                />
@@ -78,11 +83,9 @@ const ProductDetail: React.FC = () => {
             </div>
             {/* Thumbnails */}
             <div className="flex gap-4">
-               {[...Array(4)].map((_, i) => (
-                 <div key={i} className={`w-24 h-24 rounded-2xl border-2 transition-all cursor-pointer bg-[var(--card-bg)] flex items-center justify-center p-4 ${i === 0 ? 'border-primary' : 'border-[var(--border-c)] hover:border-primary/50'}`}>
-                    <img src="https://via.placeholder.com/100" className="w-full h-full object-contain mix-blend-multiply" alt="thumb" />
-                 </div>
-               ))}
+               <div className={`w-24 h-24 rounded-2xl border-2 border-primary transition-all cursor-pointer bg-[var(--card-bg)] flex items-center justify-center p-4`}>
+                  <img src={product.imageUrl} className="w-full h-full object-contain mix-blend-multiply" alt={product.name} />
+               </div>
             </div>
           </motion.div>
 
@@ -94,8 +97,8 @@ const ProductDetail: React.FC = () => {
           >
             <div className="flex items-center gap-3 text-gold mb-6">
                 <Star size={20} fill="currentColor" strokeWidth={0} />
-                <span className="font-black text-xs text-[var(--text-p)]">4.9</span>
-                <span className="text-[var(--text-s)] font-bold text-xs ml-2 uppercase tracking-widest">(128 Reviews)</span>
+                <span className="font-black text-xs text-[var(--text-p)]">{product.rating?.toFixed(1) ?? '—'}</span>
+                <span className="text-[var(--text-s)] font-bold text-xs ml-2 uppercase tracking-widest">({product.totalReviews ?? 0} Reviews)</span>
             </div>
 
             <h1 className="text-4xl sm:text-6xl font-black text-[var(--text-p)] mb-6 italic tracking-tighter leading-tight">
@@ -105,10 +108,9 @@ const ProductDetail: React.FC = () => {
             <div className="flex items-center justify-between mb-10 pb-10 border-b border-[var(--border-c)]">
                 <div className="flex items-center gap-4">
                     <span className="text-4xl sm:text-5xl font-mono-price font-black text-primary italic">${product.price.toFixed(2)}</span>
-                    <span className="text-xl text-[var(--text-s)] line-through font-bold opacity-30">${(product.price * 1.5).toFixed(2)}</span>
                 </div>
                 <div className="bg-primary/10 text-primary px-4 py-2 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] border border-primary/20">
-                   IN STOCK (12 Units)
+                   {product.stock > 0 ? `IN STOCK (${product.stock} Units)` : 'OUT OF STOCK'}
                 </div>
             </div>
 
@@ -180,7 +182,7 @@ const ProductDetail: React.FC = () => {
              <Heart className="text-primary" /> Recommended For You
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
-             {related.map((p: any) => <ProductCard key={p.id} product={p as any} />)}
+             {related.map((p) => <ProductCard key={p.id} product={p} />)}
              <div className="bg-primary/5 rounded-[3rem] border border-primary/20 border-dashed flex flex-col items-center justify-center p-12 text-center group cursor-pointer hover:bg-primary/10 transition-colors">
                 <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center text-white mb-6 group-hover:scale-110 transition-transform">
                    <ArrowRight size={32} />

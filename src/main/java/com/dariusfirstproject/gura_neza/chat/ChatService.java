@@ -3,6 +3,7 @@ package com.dariusfirstproject.gura_neza.chat;
 import com.dariusfirstproject.gura_neza.user.User;
 import com.dariusfirstproject.gura_neza.user.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -15,6 +16,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class ChatService {
 
     private final ChatMessageRepository chatMessageRepository;
@@ -36,11 +38,13 @@ public class ChatService {
 
         ChatMessageDto dto = toDto(message);
 
-        // Push in real time to the admin's inbox channel
-        messagingTemplate.convertAndSend("/topic/admin/inbox", dto);
-
-        // Also push to the specific user thread so admin sees it live if they have it open
-        messagingTemplate.convertAndSend("/topic/admin/thread/" + user.getId(), dto);
+        // Best-effort WebSocket push — message is already saved to DB regardless
+        try {
+            messagingTemplate.convertAndSend("/topic/admin/inbox", dto);
+            messagingTemplate.convertAndSend("/topic/admin/thread/" + user.getId(), dto);
+        } catch (Exception e) {
+            log.warn("WebSocket push failed for user message (saved to DB): {}", e.getMessage());
+        }
 
         return dto;
     }
@@ -55,17 +59,19 @@ public class ChatService {
                 .senderRole("ADMIN")
                 .content(content)
                 .sentAt(LocalDateTime.now())
-                .readByAdmin(true)   // admin's own messages are already "read"
+                .readByAdmin(true)
                 .build();
         chatMessageRepository.save(message);
 
         ChatMessageDto dto = toDto(message);
 
-        // Push in real time to the user's personal channel
-        messagingTemplate.convertAndSend("/topic/user/" + userId, dto);
-
-        // Also push to the admin thread view so they see their own reply immediately
-        messagingTemplate.convertAndSend("/topic/admin/thread/" + userId, dto);
+        // Best-effort WebSocket push
+        try {
+            messagingTemplate.convertAndSend("/topic/user/" + userId, dto);
+            messagingTemplate.convertAndSend("/topic/admin/thread/" + userId, dto);
+        } catch (Exception e) {
+            log.warn("WebSocket push failed for admin reply (saved to DB): {}", e.getMessage());
+        }
 
         return dto;
     }

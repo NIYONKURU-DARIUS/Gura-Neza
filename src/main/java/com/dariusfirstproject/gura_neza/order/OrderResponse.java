@@ -19,4 +19,7 @@ public class OrderResponse {
     private BigDecimal totalPrice;
     private LocalDateTime createdAt;
     private List<OrderItemResponse> items;
+    private PaymentMethod paymentMethod;
+    private String userName;
+    private String userEmail;
 }

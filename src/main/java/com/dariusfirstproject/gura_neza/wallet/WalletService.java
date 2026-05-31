@@ -4,6 +4,7 @@ import com.dariusfirstproject.gura_neza.email.EmailService;
 import com.dariusfirstproject.gura_neza.user.User;
 import com.dariusfirstproject.gura_neza.user.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,12 +16,14 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class WalletService {
 
     private final WalletRepository walletRepository;
     private final TransactionRepository transactionRepository;
     private final UserRepository userRepository;
     private final EmailService emailService;
+    private final org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
 
     public WalletResponse getWallet() {
         User user = getCurrentUser();
@@ -44,9 +47,17 @@ public class WalletService {
                 .wallet(wallet)
                 .amount(request.getAmount())
                 .type(TransactionType.CREDIT)
+                .description("Wallet top-up")
                 .timestamp(LocalDateTime.now())
                 .build();
         transactionRepository.save(transaction);
+
+        // Best-effort WebSocket push — wallet is already saved regardless
+        try {
+            messagingTemplate.convertAndSend("/topic/user/" + userId + "/wallet", wallet.getBalance());
+        } catch (Exception e) {
+            log.warn("WebSocket push failed for wallet top-up (saved to DB): {}", e.getMessage());
+        }
 
         // FIX: removed unused `Optional<User> user = userRepository.findById(userId)` that was here
 
@@ -71,6 +82,7 @@ public class WalletService {
                         .id(t.getId())
                         .amount(t.getAmount())
                         .type(t.getType())
+                        .description(t.getDescription())
                         .timestamp(t.getTimestamp())
                         .build())
                 .collect(Collectors.toList());
@@ -92,6 +104,7 @@ public class WalletService {
                         .id(t.getId())
                         .amount(t.getAmount())
                         .type(t.getType())
+                        .description(t.getDescription())
                         .timestamp(t.getTimestamp())
                         .build())
                 .collect(Collectors.toList());

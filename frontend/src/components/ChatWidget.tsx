@@ -1,169 +1,286 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, X, Send, User, ChevronLeft, Image as ImageIcon, CheckCheck, Smile } from 'lucide-react';
-
-interface Message {
-  id: string;
-  sender: 'user' | 'admin';
-  text: string;
-  timestamp: string;
-  isRead: boolean;
-}
+import { MessageSquare, Send, X, ShieldCheck, Loader2 } from 'lucide-react';
+import { useStore } from '../context/store';
+import { chatService, type ChatMessage } from '../services/chatService';
+import api from '../services/api';
 
 const ChatWidget: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [input, setInput] = useState('');
-  const [messages, setMessages] = useState<Message[]>([
-    { id: '1', sender: 'admin', text: 'Hello! 👋 How can we help you with Gura Neza today?', timestamp: '10:00 AM', isRead: true },
-  ]);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [inputText, setInputText] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [sendError, setSendError] = useState('');
+  const [unreadCount, setUnreadCount] = useState(0);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  // Pull stable primitives only — avoids reconnect loop when walletBalance changes
+  const user = useStore(s => s.user);
+  const token = useStore(s => s.token);
+  const setUser = useStore(s => s.setUser);
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Keep a ref to user so wallet subscription closure stays fresh
+  const userRef = useRef(user);
+  useEffect(() => { userRef.current = user; }, [user]);
+
+  const loadHistory = useCallback(async () => {
+    try {
+      const history = await chatService.getHistory();
+      setMessages(history);
+    } catch {
+      // silently ignore — REST fallback may not be available
+    }
+  }, []);
+
+  // Connect / disconnect when chat opens
   useEffect(() => {
-    if (isOpen) scrollToBottom();
-  }, [messages, isOpen]);
+    if (!isOpen || !token || !user) return;
 
-  const handleSend = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim()) return;
+    setIsLoading(true);
+    loadHistory().finally(() => setIsLoading(false));
 
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      sender: 'user',
-      text: input,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      isRead: false
+    // Poll every 4 s as fallback when WebSocket is unavailable
+    pollRef.current = setInterval(loadHistory, 4000);
+
+    chatService.connect(token, (newMsg) => {
+      setMessages(prev => {
+        const exists = prev.some(
+          m => (m.id && m.id === newMsg.id) ||
+               (m.sentAt === newMsg.sentAt && m.content === newMsg.content)
+        );
+        if (exists) return prev;
+        // Count unread admin messages when chat is closed
+        if (!isOpen && newMsg.senderRole === 'ADMIN') {
+          setUnreadCount(c => c + 1);
+        }
+        return [...prev, newMsg];
+      });
+    }).then(() => {
+      const uid = userRef.current?.id?.toString();
+      if (uid) {
+        chatService.subscribeToUser(uid);
+        chatService.subscribeToWallet(uid, (newBalance) => {
+          const current = userRef.current;
+          if (current) setUser({ ...current, walletBalance: newBalance });
+        });
+      }
+    });
+
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+      chatService.disconnect();
     };
+    // intentionally omit `user` — we use userRef to avoid reconnect on wallet update
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, token]);
 
-    setMessages([...messages, newMessage]);
-    setInput('');
+  // Clear unread when opening
+  useEffect(() => {
+    if (isOpen) setUnreadCount(0);
+  }, [isOpen]);
 
-    // Mock admin response
-    setTimeout(() => {
-      const adminReply: Message = {
-        id: (Date.now() + 1).toString(),
-        sender: 'admin',
-        text: 'Thanks for your message! Our team will get back to you shortly. 🍃',
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        isRead: true
-      };
-      setMessages(prev => [...prev, adminReply]);
-    }, 1500);
+  // Auto-scroll to bottom
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  const handleSend = async () => {
+    const content = inputText.trim();
+    if (!content || isSending) return;
+    setInputText('');
+    setIsSending(true);
+    setSendError('');
+    try {
+      const response = await api.post('/chat/send', { content });
+      const sent: ChatMessage = response.data;
+      setMessages(prev => {
+        const exists = prev.some(m => m.id === sent.id);
+        return exists ? prev : [...prev, sent];
+      });
+    } catch (err: any) {
+      setInputText(content); // restore on failure
+      const msg = err.response?.data?.message || err.message || 'Failed to send message';
+      setSendError(msg);
+      // Clear error after 4s
+      setTimeout(() => setSendError(''), 4000);
+    } finally {
+      setIsSending(false);
+    }
   };
+
+  if (!user || user.role === 'ADMIN') return null;
 
   return (
-    <div className="fixed bottom-6 right-6 z-[100] font-body">
-      {/* Floating Button */}
-      <motion.button
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-16 h-16 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center cursor-pointer group relative overflow-hidden"
-      >
-        <div className="absolute inset-0 bg-white/20 scale-0 group-hover:scale-100 transition-transform duration-500 rounded-full" />
-        {isOpen ? <X size={28} /> : <MessageCircle size={28} />}
-        {!isOpen && (
-            <span className="absolute -top-1 -right-1 w-4 h-4 bg-red rounded-full border-2 border-white animate-pulse" />
-        )}
-      </motion.button>
-
-      {/* Chat Drawer */}
+    <div className="fixed bottom-4 right-4 sm:bottom-8 sm:right-8 z-[200] font-body relative">
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 100, scale: 0.8 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 100, scale: 0.8 }}
-            className="absolute bottom-20 right-0 w-[90vw] sm:w-[400px] h-[600px] max-h-[80vh] bg-[var(--card-bg)] border border-[var(--border-c)] rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden transition-colors duration-500"
+            initial={{ opacity: 0, scale: 0.95, y: 12 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 12 }}
+            transition={{ type: 'spring', damping: 22, stiffness: 320 }}
+            style={{ transformOrigin: 'bottom right' }}
+            className={`
+              absolute bottom-[calc(100%+12px)] right-0
+              w-[min(420px,calc(100vw-2rem))]
+              h-[min(580px,calc(100vh-100px))]
+              bg-[var(--card-bg)] rounded-[2rem]
+              shadow-[0_20px_60px_rgba(0,0,0,0.2)]
+              border border-[var(--border-c)]
+              flex flex-col overflow-hidden
+            `}
           >
             {/* Header */}
-            <div className="bg-primary p-6 text-white flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="relative">
-                  <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md">
-                    <User size={24} />
+            <div className="relative p-5 sm:p-6 bg-gradient-to-br from-primary to-[#1B5E20] text-white overflow-hidden flex-shrink-0">
+              <div className="absolute top-0 right-0 w-28 h-28 bg-white/10 rounded-full blur-2xl -mr-8 -mt-8 pointer-events-none" />
+              <div className="relative z-10 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center border border-white/10">
+                    <ShieldCheck size={22} className="text-white" />
                   </div>
-                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-primary rounded-full" />
-                </div>
-                <div>
-                  <h3 className="font-black text-sm uppercase tracking-widest">Support Admin</h3>
-                  <div className="flex items-center gap-1.5 opacity-80">
-                    <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
-                    <span className="text-[10px] font-bold">Usually replies in 1h</span>
+                  <div>
+                    <h3 className="font-black italic text-base tracking-tighter uppercase leading-none">
+                      Gura Support
+                    </h3>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+                      <span className="text-[9px] font-black uppercase tracking-widest opacity-70">
+                        Online
+                      </span>
+                    </div>
                   </div>
                 </div>
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-colors"
+                >
+                  <X size={18} />
+                </button>
               </div>
-              <button 
-                onClick={() => setIsOpen(false)}
-                className="p-2 hover:bg-white/10 rounded-xl transition-colors"
-              >
-                <ChevronLeft size={24} />
-              </button>
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-[var(--bg-main)]/30">
-              {messages.map((msg) => (
-                <motion.div
-                  key={msg.id}
-                  initial={{ opacity: 0, x: msg.sender === 'user' ? 20 : -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div className={`max-w-[80%] p-4 rounded-2xl text-sm font-bold shadow-sm relative ${
-                    msg.sender === 'user' 
-                      ? 'bg-primary text-white rounded-tr-none' 
-                      : 'bg-[var(--card-bg)] text-[var(--text-p)] border border-[var(--border-c)] rounded-tl-none'
-                  }`}>
-                    {msg.text}
-                    <div className={`text-[10px] mt-2 flex items-center gap-1 ${
-                      msg.sender === 'user' ? 'text-white/60' : 'text-[var(--text-s)]'
-                    }`}>
-                      {msg.timestamp}
-                      {msg.sender === 'user' && <CheckCheck size={12} className={msg.isRead ? 'text-white' : 'text-white/40'} />}
-                    </div>
-                    {/* Shadow Glow for Dark Mode */}
-                    <div className={`absolute inset-0 rounded-2xl opacity-0 dark:opacity-20 blur-lg transition-opacity ${
-                      msg.sender === 'user' ? 'bg-primary' : 'bg-transparent'
-                    }`} />
+            <div className="flex-1 overflow-hidden flex flex-col bg-[var(--bg-main)]">
+              <div
+                ref={scrollRef}
+                className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar"
+              >
+                {isLoading && messages.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center opacity-30 gap-3">
+                    <Loader2 size={28} className="animate-spin text-primary" />
+                    <p className="text-[10px] font-black uppercase tracking-widest">Loading...</p>
                   </div>
-                </motion.div>
-              ))}
-              <div ref={messagesEndRef} />
+                ) : messages.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-center px-6 gap-4">
+                    <div className="w-16 h-16 bg-primary/5 rounded-full flex items-center justify-center border border-primary/10">
+                      <MessageSquare size={28} className="text-primary/30" />
+                    </div>
+                    <div>
+                      <h4 className="text-base font-black italic text-[var(--text-p)] mb-1">
+                        Hi, {user.name.split(' ')[0]}!
+                      </h4>
+                      <p className="text-xs font-bold text-[var(--text-s)] leading-relaxed">
+                        How can we help you today?
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  messages.map((msg, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={`flex ${msg.senderRole === 'ADMIN' ? 'justify-start' : 'justify-end'}`}
+                    >
+                      <div
+                        className={`max-w-[80%] px-4 py-3 rounded-2xl text-xs font-bold leading-relaxed ${
+                          msg.senderRole === 'ADMIN'
+                            ? 'bg-[var(--card-bg)] text-[var(--text-p)] border border-[var(--border-c)] rounded-tl-sm'
+                            : 'bg-primary text-white rounded-tr-sm shadow-md shadow-primary/20'
+                        }`}
+                      >
+                        {msg.content}
+                        <div className={`text-[8px] mt-1 opacity-40 font-black ${
+                          msg.senderRole === 'ADMIN' ? 'text-left' : 'text-right'
+                        }`}>
+                          {new Date(msg.sentAt).toLocaleTimeString([], {
+                            hour: '2-digit', minute: '2-digit',
+                          })}
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))
+                )}
+              </div>
             </div>
 
-            {/* Input Bar */}
-            <form onSubmit={handleSend} className="p-6 bg-[var(--card-bg)] border-t border-[var(--border-c)] flex flex-col gap-4 transition-colors duration-500">
-               <div className="flex items-center justify-between opacity-50 px-2">
-                 <div className="flex gap-4">
-                    <button type="button"><ImageIcon size={18} /></button>
-                    <button type="button"><Smile size={18} /></button>
-                 </div>
-                 <span className="text-[10px] font-black uppercase tracking-widest">Supports Files</span>
-               </div>
-               <div className="flex items-center gap-3">
-                <input 
-                  type="text" 
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
+            {/* Input */}
+            <div className="p-3 sm:p-4 bg-[var(--card-bg)] border-t border-[var(--border-c)] flex-shrink-0">
+              {sendError && (
+                <div className="mb-2 px-3 py-2 bg-red/10 border border-red/20 rounded-xl text-[10px] font-black text-red uppercase tracking-tight">
+                  {sendError}
+                </div>
+              )}
+              <div className="flex gap-2 items-center bg-[var(--bg-main)] rounded-2xl border border-[var(--border-c)] px-3 py-2 focus-within:border-primary transition-colors">
+                <input
+                  type="text"
                   placeholder="Type a message..."
-                  className="flex-1 bg-[var(--bg-main)] border border-[var(--border-c)] rounded-2xl px-5 py-3 text-sm font-bold outline-none focus:border-primary transition-all text-[var(--text-p)]"
+                  value={inputText}
+                  onChange={e => setInputText(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
+                  className="flex-1 bg-transparent py-2 text-xs font-bold outline-none text-[var(--text-p)] placeholder:text-[var(--text-s)]"
+                  disabled={isSending}
                 />
-                <button 
-                  type="submit"
-                  disabled={!input.trim()}
-                  className="w-12 h-12 bg-primary text-white rounded-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-lg shadow-primary/20 disabled:grayscale disabled:opacity-50"
+                <button
+                  onClick={handleSend}
+                  disabled={isSending || !inputText.trim()}
+                  className="w-9 h-9 bg-primary text-white rounded-xl flex items-center justify-center flex-shrink-0 hover:scale-105 active:scale-95 transition-all disabled:opacity-40"
                 >
-                  <Send size={20} />
+                  {isSending
+                    ? <Loader2 size={16} className="animate-spin" />
+                    : <Send size={16} />
+                  }
                 </button>
-               </div>
-            </form>
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* FAB toggle button */}
+      <motion.button
+        whileHover={{ scale: 1.08 }}
+        whileTap={{ scale: 0.92 }}
+        onClick={() => setIsOpen(prev => !prev)}
+        className="w-14 h-14 sm:w-16 sm:h-16 bg-primary text-white rounded-2xl flex items-center justify-center shadow-xl shadow-primary/30 relative"
+      >
+        <AnimatePresence mode="wait">
+          {isOpen ? (
+            <motion.div key="close" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }}>
+              <X size={22} />
+            </motion.div>
+          ) : (
+            <motion.div key="open" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }}>
+              <MessageSquare size={22} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Unread badge — only shown when there are real unread messages */}
+        {unreadCount > 0 && !isOpen && (
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-[var(--bg-main)]"
+          >
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </motion.div>
+        )}
+      </motion.button>
     </div>
   );
 };

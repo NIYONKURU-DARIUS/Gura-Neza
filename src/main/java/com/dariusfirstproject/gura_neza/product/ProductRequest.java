@@ -24,4 +24,6 @@ public class ProductRequest {
     @PositiveOrZero
     private Integer stock;
     private Category category;
+    private boolean isFeatured;
+    private String imageUrl;
 }

@@ -50,4 +50,9 @@ public class ProductController {
         productService.deleteProduct(id);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/{id}/like")
+    public ResponseEntity<ProductResponse> likeProduct(@PathVariable Long id) {
+        return ResponseEntity.ok(productService.likeProduct(id));
+    }
 }

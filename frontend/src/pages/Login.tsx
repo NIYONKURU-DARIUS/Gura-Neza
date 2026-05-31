@@ -1,22 +1,54 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Lock, LogIn, ArrowLeft, Globe, AlertCircle } from 'lucide-react';
+import { Mail, Lock, LogIn, ArrowLeft, Globe, AlertCircle, Loader2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useStore } from '../context/store';
+import { authService } from '../services/authService';
+import { userService } from '../services/userService';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const { setUser, setToken, fetchCart } = useStore();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
       setError('Please fill in all fields');
-      setTimeout(() => setError(''), 3000);
       return;
     }
-    navigate('/products');
+
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const data = await authService.login({ email, password });
+      setToken(data.token);
+      // Fetch full profile including wallet balance
+      const profile = await userService.getMe();
+      setUser({
+        id: profile.id.toString(),
+        name: profile.name,
+        email: profile.email,
+        role: profile.role,
+        walletBalance: profile.walletBalance,
+      });
+      // Pre-load cart
+      await fetchCart();
+      
+      if (profile.role === 'ADMIN') {
+        navigate('/admin');
+      } else {
+        navigate('/products');
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Invalid email or password');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -28,7 +60,6 @@ const Login: React.FC = () => {
         className="hidden lg:flex w-1/2 bg-gradient-to-br from-primary to-[#065f46] dark:from-[#1B5E20] dark:to-[#0A0A0A] p-20 flex-col justify-between text-white relative overflow-hidden"
       >
         <div className="absolute top-0 right-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10" />
-        {/* Particle Animation Placeholder */}
         <div className="absolute inset-0 z-0">
             {[...Array(10)].map((_, i) => (
                 <motion.div 
@@ -100,6 +131,7 @@ const Login: React.FC = () => {
                   className="input-field pl-14 py-4"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  disabled={isLoading}
                 />
               </div>
             </div>
@@ -117,12 +149,18 @@ const Login: React.FC = () => {
                   className="input-field pl-14 py-4"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  disabled={isLoading}
                 />
               </div>
             </div>
 
-            <button type="submit" className="btn-primary py-5 text-xl font-black rounded-2xl flex items-center justify-center gap-3 mt-6">
-              <LogIn size={24} /> Sign In
+            <button 
+              type="submit" 
+              disabled={isLoading}
+              className="btn-primary py-5 text-xl font-black rounded-2xl flex items-center justify-center gap-3 mt-6 disabled:opacity-50"
+            >
+              {isLoading ? <Loader2 size={24} className="animate-spin" /> : <LogIn size={24} />} 
+              {isLoading ? 'Signing In...' : 'Sign In'}
             </button>
           </form>
 

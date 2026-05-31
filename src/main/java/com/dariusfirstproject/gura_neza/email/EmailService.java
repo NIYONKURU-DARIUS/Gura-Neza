@@ -1,6 +1,7 @@
 package com.dariusfirstproject.gura_neza.email;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
@@ -12,6 +13,7 @@ import java.math.BigDecimal;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class EmailService {
 
     private final JavaMailSender mailSender;
@@ -35,7 +37,7 @@ public class EmailService {
 
             mailSender.send(message);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to send verification email: " + e.getMessage());
+            log.warn("Could not send verification email to {}: {}", to, e.getMessage());
         }
     }
     public void sendOrderConfirmationEmail(String to, String name, OrderResponse order) {
@@ -63,7 +65,7 @@ public class EmailService {
 
             mailSender.send(message);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to send order confirmation email: " + e.getMessage());
+            log.warn("Could not send order confirmation email to {}: {}", to, e.getMessage());
         }
     }
     // ✅ NEW — Wallet top-up notification

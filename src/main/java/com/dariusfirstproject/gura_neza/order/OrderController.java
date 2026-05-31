@@ -17,8 +17,10 @@ public class OrderController {
     private final OrderService orderService;
 
     @PostMapping("/checkout")
-    public ResponseEntity<OrderResponse> checkout() {
-        return ResponseEntity.status(201).body(orderService.checkout());
+    public ResponseEntity<OrderResponse> checkout(
+            @RequestBody(required = false) CheckoutRequest request) {
+        return ResponseEntity.status(201).body(
+                orderService.checkout(request != null ? request : new CheckoutRequest()));
     }
 
     @GetMapping
@@ -31,17 +33,28 @@ public class OrderController {
         return ResponseEntity.ok(orderService.getUserOrderById(id));
     }
 
-    // FIX: added @PreAuthorize at controller level — admin check is now explicit at the HTTP entry point
+    // ADMIN: get ALL orders across all users
+    @GetMapping("/admin/all")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public ResponseEntity<List<OrderResponse>> getAllOrders() {
+        return ResponseEntity.ok(orderService.getAllOrders());
+    }
+
     @PutMapping("/{id}/confirm")
     @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<OrderResponse> confirmOrder(@PathVariable Long id) {
         return ResponseEntity.ok(orderService.confirmOrder(id));
     }
 
-    // FIX: same here
     @PutMapping("/{id}/deliver")
     @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<OrderResponse> deliverOrder(@PathVariable Long id) {
         return ResponseEntity.ok(orderService.deliverOrder(id));
+    }
+
+    @PutMapping("/{id}/cancel")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public ResponseEntity<OrderResponse> cancelOrder(@PathVariable Long id) {
+        return ResponseEntity.ok(orderService.cancelOrder(id));
     }
 }

@@ -8,9 +8,9 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 
 @Data
+@Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
 public class ProductResponse {
     private Long id;
     private String name;
@@ -18,4 +18,10 @@ public class ProductResponse {
     private BigDecimal price;
     private Integer stock;
     private Category category;
+    private Integer likesCount;
+    private Double rating;
+    private Integer totalReviews;
+    private boolean isFeatured;
+    private String imageUrl;
+    private boolean likedByCurrentUser;
 }

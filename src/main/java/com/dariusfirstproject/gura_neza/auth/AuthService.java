@@ -88,6 +88,12 @@ public class AuthService {
         // 5. Return response
         return AuthResponse.builder()
                 .token(token)
+                .user(AuthResponse.UserDto.builder()
+                        .id(user.getId().toString())
+                        .name(user.getName())
+                        .email(user.getEmail())
+                        .role(user.getRole())
+                        .build())
                 .build();
     }
 
