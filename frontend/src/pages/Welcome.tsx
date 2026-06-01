@@ -153,7 +153,7 @@ const Welcome: React.FC = () => {
         <div className="max-w-[1400px] mx-auto px-6 sm:px-10 h-20 flex items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3 group">
-            <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/30 group-hover:shadow-primary/50 transition-all group-hover:scale-110">
+            <div className="w-9 h-9 bg-primary rounded-full flex items-center justify-center shadow-lg shadow-primary/30 group-hover:shadow-primary/50 transition-all group-hover:scale-110">
               <span className="text-white font-black text-lg italic">G</span>
             </div>
             <span className={`text-lg font-black tracking-tighter italic ${text}`}>GURA NEZA</span>
@@ -178,10 +178,9 @@ const Welcome: React.FC = () => {
 
           {/* CTA buttons */}
           <div className="flex items-center gap-3">
-            {/* Dark/Light toggle */}
             <button
               onClick={() => setDarkMode(!darkMode)}
-              className={`p-2 rounded-xl border transition-all ${
+              className={`p-2 rounded-full border transition-all ${
                 darkMode
                   ? 'bg-white/5 border-white/10 text-white/70 hover:text-white hover:bg-white/10'
                   : 'bg-gray-100 border-gray-200 text-gray-600 hover:text-gray-900 hover:bg-gray-200'
@@ -198,14 +197,14 @@ const Welcome: React.FC = () => {
                   </button>
                 </Link>
                 <Link to="/register">
-                  <button className="bg-primary text-white text-[10px] font-black uppercase tracking-widest px-5 py-2.5 rounded-xl shadow-lg shadow-primary/30 hover:shadow-primary/50 hover:scale-105 transition-all">
+                  <button className="bg-primary text-white text-[10px] font-black uppercase tracking-widest px-5 py-2.5 rounded-full shadow-lg shadow-primary/30 hover:shadow-primary/50 hover:scale-105 transition-all">
                     Get Started
                   </button>
                 </Link>
               </>
             ) : (
               <Link to="/products">
-                <button className="bg-primary text-white text-[10px] font-black uppercase tracking-widest px-5 py-2.5 rounded-xl shadow-lg shadow-primary/30 hover:scale-105 transition-all">
+                <button className="bg-primary text-white text-[10px] font-black uppercase tracking-widest px-5 py-2.5 rounded-full shadow-lg shadow-primary/30 hover:scale-105 transition-all">
                   Go to Shop
                 </button>
               </Link>
@@ -249,12 +248,12 @@ const Welcome: React.FC = () => {
             </nav>
             <div className="mt-auto flex flex-col gap-4">
               <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
-                <button className={`w-full border ${darkMode ? 'border-white/20 text-white hover:bg-white/5' : 'border-gray-300 text-gray-900 hover:bg-gray-50'} font-black py-4 rounded-2xl text-sm uppercase tracking-widest transition-all`}>
+                <button className={`w-full border ${darkMode ? 'border-white/20 text-white hover:bg-white/5' : 'border-gray-300 text-gray-900 hover:bg-gray-50'} font-black py-4 rounded-full text-sm uppercase tracking-widest transition-all`}>
                   Sign In
                 </button>
               </Link>
               <Link to="/register" onClick={() => setMobileMenuOpen(false)}>
-                <button className="w-full bg-primary text-white font-black py-4 rounded-2xl text-sm uppercase tracking-widest shadow-xl shadow-primary/30">
+                <button className="w-full bg-primary text-white font-black py-4 rounded-full text-sm uppercase tracking-widest shadow-xl shadow-primary/30">
                   Create Account
                 </button>
               </Link>
@@ -574,31 +573,29 @@ const Welcome: React.FC = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                whileHover={{ y: -6 }}
+                whileHover={{ y: -8, scale: 1.02 }}
                 className="group relative cursor-pointer"
               >
                 <Link to={token ? '/products' : '/login'}>
-                  <div className={`relative h-[340px] rounded-3xl overflow-hidden border ${darkMode ? 'border-white/5' : 'border-gray-200'}`}>
-                    {/* Image */}
+                  {/* Pill-shaped tall card — no border, pure shadow */}
+                  <div className="relative h-[360px] rounded-[3rem] overflow-hidden shadow-xl shadow-black/10 group-hover:shadow-2xl group-hover:shadow-black/20 transition-all duration-500">
                     <img
                       src={cat.image}
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                       alt={cat.name}
                     />
-                    {/* Gradient */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
-                    {/* Glow on hover */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
                     <div
-                      className="absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity duration-500"
+                      className="absolute inset-0 opacity-0 group-hover:opacity-30 transition-opacity duration-500"
                       style={{ background: `radial-gradient(circle at 50% 100%, ${cat.accent}, transparent 70%)` }}
                     />
-                    {/* Content */}
                     <div className="absolute inset-0 p-7 flex flex-col justify-between">
                       <div className="flex justify-between items-start">
-                        <span className="text-[9px] font-black uppercase tracking-[0.3em] text-white/40 bg-white/5 backdrop-blur-md border border-white/10 px-3 py-1.5 rounded-full">
+                        <span className="text-[9px] font-black uppercase tracking-[0.3em] text-white/60 bg-white/10 backdrop-blur-md px-4 py-1.5 rounded-full">
                           {cat.tag}
                         </span>
-                        <div className="w-9 h-9 bg-white/10 backdrop-blur-md rounded-xl flex items-center justify-center text-white border border-white/10 group-hover:bg-white/20 transition-all">
+                        {/* Circle icon — no more square */}
+                        <div className="w-9 h-9 bg-white/15 backdrop-blur-md rounded-full flex items-center justify-center text-white group-hover:bg-white/25 transition-all">
                           {React.cloneElement(cat.icon as React.ReactElement<any>, { size: 16 })}
                         </div>
                       </div>
@@ -653,13 +650,13 @@ const Welcome: React.FC = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                whileHover={{ y: -4 }}
-                className={`group relative ${cardBg} border ${cardBorder} rounded-3xl p-8 transition-all duration-500 overflow-hidden shadow-sm`}
+                whileHover={{ y: -6 }}
+                className={`group relative ${cardBg} rounded-[2.5rem] p-8 transition-all duration-500 overflow-hidden shadow-sm hover:shadow-xl`}
               >
-                {/* Gradient glow on hover */}
-                <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-500 bg-gradient-to-br ${f.color}`} />
-                {/* Icon */}
-                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${f.color} flex items-center justify-center text-white mb-6 shadow-xl`}>
+                {/* Gradient glow on hover — no border */}
+                <div className={`absolute inset-0 opacity-0 group-hover:opacity-8 transition-opacity duration-500 bg-gradient-to-br ${f.color} rounded-[2.5rem]`} />
+                {/* Circle icon */}
+                <div className={`w-14 h-14 rounded-full bg-gradient-to-br ${f.color} flex items-center justify-center text-white mb-6 shadow-xl`}>
                   {f.icon}
                 </div>
                 <h3 className={`text-lg font-black ${text} italic tracking-tighter mb-3`}>{f.title}</h3>
@@ -710,7 +707,7 @@ const Welcome: React.FC = () => {
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="bg-white text-primary font-black text-sm uppercase tracking-widest px-10 py-5 rounded-2xl shadow-2xl hover:shadow-white/20 transition-all"
+                    className="bg-white text-primary font-black text-sm uppercase tracking-widest px-10 py-5 rounded-full shadow-2xl hover:shadow-white/20 transition-all"
                   >
                     Create Free Account
                   </motion.button>
@@ -718,7 +715,7 @@ const Welcome: React.FC = () => {
                 <Link to="/login">
                   <motion.button
                     whileHover={{ scale: 1.03 }}
-                    className="bg-white/10 backdrop-blur-md border border-white/20 text-white font-black text-sm uppercase tracking-widest px-10 py-5 rounded-2xl hover:bg-white/20 transition-all"
+                    className="bg-white/10 backdrop-blur-md border border-white/20 text-white font-black text-sm uppercase tracking-widest px-10 py-5 rounded-full hover:bg-white/20 transition-all"
                   >
                     Sign In
                   </motion.button>
@@ -755,7 +752,7 @@ const Welcome: React.FC = () => {
             </motion.h2>
           </div>
 
-          {/* Testimonial cards */}
+          {/* Testimonial cards — pill/bubble style, no border */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {testimonials.map((t, i) => (
               <motion.div
@@ -764,10 +761,10 @@ const Welcome: React.FC = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.12 }}
-                className={`relative ${cardBg} border rounded-3xl p-8 transition-all duration-500 shadow-sm ${
+                className={`relative rounded-[2.5rem] p-8 transition-all duration-500 ${
                   activeTestimonial === i
-                    ? 'border-primary/40 bg-primary/5 shadow-xl shadow-primary/10'
-                    : `${cardBorder}`
+                    ? 'bg-primary/8 shadow-2xl shadow-primary/10 scale-[1.02]'
+                    : `${cardBg} shadow-md hover:shadow-xl`
                 }`}
               >
                 {/* Stars */}
@@ -780,7 +777,8 @@ const Welcome: React.FC = () => {
                   "{t.text}"
                 </p>
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center text-primary font-black text-sm border border-primary/20">
+                  {/* Circle avatar — no more square */}
+                  <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center text-primary font-black text-sm">
                     {t.avatar}
                   </div>
                   <div>
@@ -820,7 +818,7 @@ const Welcome: React.FC = () => {
                 transition={{ delay: i * 0.1 }}
                 className="text-center"
               >
-                <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-4 border border-primary/20">
+                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center text-primary mx-auto mb-4">
                   {s.icon}
                 </div>
                 <h3 className={`text-4xl font-black ${text} italic tracking-tighter mb-1`}>{s.value}</h3>
@@ -838,7 +836,7 @@ const Welcome: React.FC = () => {
             {/* Brand */}
             <div className="max-w-sm">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/30">
+                <div className="w-9 h-9 bg-primary rounded-full flex items-center justify-center shadow-lg shadow-primary/30">
                   <span className="text-white font-black text-lg italic">G</span>
                 </div>
                 <span className={`text-xl font-black italic ${text} tracking-tighter`}>GURA NEZA</span>
@@ -849,7 +847,7 @@ const Welcome: React.FC = () => {
               {/* Social links placeholder */}
               <div className="flex gap-3 mt-8">
                 {['TW', 'IG', 'FB', 'LI'].map(s => (
-                  <div key={s} className={`w-9 h-9 ${darkMode ? 'bg-white/5 border-white/10 text-white/30 hover:text-white hover:bg-white/10' : 'bg-gray-100 border-gray-200 text-gray-400 hover:text-gray-700 hover:bg-gray-200'} border rounded-xl flex items-center justify-center transition-all cursor-pointer text-[9px] font-black`}>
+                  <div key={s} className={`w-9 h-9 ${darkMode ? 'bg-white/5 border-white/10 text-white/30 hover:text-white hover:bg-white/10' : 'bg-gray-100 border-gray-200 text-gray-400 hover:text-gray-700 hover:bg-gray-200'} border rounded-full flex items-center justify-center transition-all cursor-pointer text-[9px] font-black`}>
                     {s}
                   </div>
                 ))}
