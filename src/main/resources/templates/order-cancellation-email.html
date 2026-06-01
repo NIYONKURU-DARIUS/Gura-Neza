@@ -1,11 +1,210 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Order Cancelled – Gura Neza</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background-color: #f0f4f0;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      color: #1a1a1a;
+    }
+    .wrapper {
+      max-width: 620px;
+      margin: 40px auto;
+      background: #ffffff;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 4px 24px rgba(46,125,50,0.10);
+    }
+    /* Accent bar — amber for cancellation */
+    .accent-bar {
+      height: 5px;
+      background: linear-gradient(90deg, #e65100, #f57c00, #ffa726, #ffcc02);
+    }
+    .header {
+      background: linear-gradient(135deg, #bf360c 0%, #e64a19 60%, #f4511e 100%);
+      padding: 44px 40px 36px;
+      text-align: center;
+    }
+    .header-logo {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 56px;
+      height: 56px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 50%;
+      margin-bottom: 18px;
+      font-size: 26px;
+      font-weight: 900;
+      font-style: italic;
+      color: #ffffff;
+    }
+    .header h1 { color: #ffffff; font-size: 26px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 6px; }
+    .header p  { color: rgba(255,255,255,0.75); font-size: 13px; font-weight: 500; }
+    .status-badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.2);
+      color: #ffffff;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 5px 16px;
+      border-radius: 50px;
+      margin-top: 14px;
+      border: 1px solid rgba(255,255,255,0.3);
+    }
+
+    .body { padding: 40px 40px 32px; }
+    .greeting { font-size: 20px; font-weight: 700; color: #bf360c; margin-bottom: 12px; }
+    .body p { font-size: 14px; color: #444; line-height: 1.7; margin-bottom: 16px; }
+
+    /* Alert box */
+    .alert-box {
+      background: #fff3e0;
+      border-left: 4px solid #f57c00;
+      border-radius: 0 10px 10px 0;
+      padding: 16px 20px;
+      margin: 24px 0;
+      font-size: 13px;
+      color: #e65100;
+      font-weight: 600;
+    }
+
+    /* Order summary card */
+    .summary-card {
+      background: #fafafa;
+      border: 1px solid #eeeeee;
+      border-radius: 14px;
+      padding: 20px 24px;
+      margin: 24px 0;
+    }
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 13px;
+    }
+    .summary-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .summary-row .label { color: #888; font-weight: 500; }
+    .summary-row .value { color: #1a1a1a; font-weight: 700; }
+    .summary-row .value.red { color: #e64a19; }
+
+    /* Reassurance box */
+    .reassurance {
+      background: #e8f5e9;
+      border-left: 4px solid #2e7d32;
+      border-radius: 0 10px 10px 0;
+      padding: 16px 20px;
+      margin: 24px 0;
+      font-size: 13px;
+      color: #2e7d32;
+      font-weight: 600;
+    }
+
+    /* CTA */
+    .btn-wrap { text-align: center; margin: 28px 0; }
+    .btn {
+      display: inline-block;
+      background: linear-gradient(135deg, #2e7d32, #43a047);
+      color: #ffffff !important;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      padding: 14px 36px;
+      border-radius: 50px;
+      box-shadow: 0 4px 16px rgba(46,125,50,0.30);
+    }
+
+    .divider { border: none; border-top: 1px solid #eeeeee; margin: 28px 0; }
+
+    .footer {
+      background: #f8faf8;
+      border-top: 1px solid #e8f0e8;
+      padding: 24px 40px;
+      text-align: center;
+    }
+    .footer-brand { font-size: 13px; font-weight: 800; color: #2e7d32; letter-spacing: 0.5px; margin-bottom: 6px; }
+    .footer p { font-size: 11px; color: #aaa; line-height: 1.6; }
+  </style>
+</head>
 <body>
-<h2>Hello, <span th:text="${name}">User</span>!</h2>
-<p>Your order <strong>#<span th:text="${orderId}">0</span></strong> has been automatically cancelled
-    because it was not confirmed within 15 minutes.</p>
-<p><strong>Order total:</strong> <span th:text="${totalPrice}">0</span> RWF</p>
-<p>Since payment is only charged upon confirmation, no money was deducted from your wallet.</p>
-<p>Feel free to place a new order anytime on Gura Neza.</p>
+<div class="wrapper">
+  <div class="accent-bar"></div>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-logo">G</div>
+    <h1>Order Cancelled</h1>
+    <p>Your order could not be processed</p>
+    <div class="status-badge">✕ &nbsp;Cancelled</div>
+  </div>
+
+  <!-- Body -->
+  <div class="body">
+    <p class="greeting">Hello, <span th:text="${name}">Customer</span>!</p>
+    <p>
+      We're sorry to let you know that your order has been cancelled.
+      This typically happens when an order is not confirmed within the required time window.
+    </p>
+
+    <!-- Alert -->
+    <div class="alert-box">
+      ⚠️ &nbsp;Your order was automatically cancelled because it was not confirmed within <strong>15 minutes</strong>.
+    </div>
+
+    <!-- Order summary -->
+    <div class="summary-card">
+      <div class="summary-row">
+        <span class="label">Order Reference</span>
+        <span class="value" th:text="'#' + ${orderId}">#0</span>
+      </div>
+      <div class="summary-row">
+        <span class="label">Order Total</span>
+        <span class="value red" th:text="'$' + ${#numbers.formatDecimal(totalPrice, 1, 2)}">$0.00</span>
+      </div>
+      <div class="summary-row">
+        <span class="label">Status</span>
+        <span class="value red">Cancelled</span>
+      </div>
+    </div>
+
+    <!-- Reassurance -->
+    <div class="reassurance">
+      ✓ &nbsp;No money was deducted from your wallet. Payment is only charged upon order confirmation.
+    </div>
+
+    <p style="font-size:14px; color:#555;">
+      You're welcome to place a new order anytime. Your cart items are still available.
+    </p>
+
+    <div class="btn-wrap">
+      <a href="#" class="btn">Shop Again on Gura Neza</a>
+    </div>
+
+    <hr class="divider" />
+
+    <p style="font-size:12px; color:#999;">
+      If you believe this cancellation was a mistake or need assistance, please contact our support team.
+    </p>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div class="footer-brand">GURA NEZA</div>
+    <p>
+      &copy; 2026 Gura Neza Global. All rights reserved.<br />
+      This is an automated message — please do not reply directly to this email.
+    </p>
+  </div>
+</div>
 </body>
 </html>

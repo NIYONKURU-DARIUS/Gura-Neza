@@ -1,14 +1,195 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Verify Your Email</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Verify Your Email – Gura Neza</title>
+  <style>
+    /* ── Reset ── */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background-color: #f0f4f0;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      color: #1a1a1a;
+    }
+
+    /* ── Wrapper ── */
+    .wrapper {
+      max-width: 620px;
+      margin: 40px auto;
+      background: #ffffff;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 4px 24px rgba(46,125,50,0.10);
+    }
+
+    /* ── Top accent bar ── */
+    .accent-bar {
+      height: 5px;
+      background: linear-gradient(90deg, #1b5e20, #2e7d32, #43a047, #66bb6a);
+    }
+
+    /* ── Header ── */
+    .header {
+      background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 60%, #388e3c 100%);
+      padding: 44px 40px 36px;
+      text-align: center;
+    }
+    .header-logo {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 56px;
+      height: 56px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 50%;
+      margin-bottom: 18px;
+      font-size: 26px;
+      font-weight: 900;
+      font-style: italic;
+      color: #ffffff;
+      letter-spacing: -1px;
+    }
+    .header h1 {
+      color: #ffffff;
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 6px;
+    }
+    .header p {
+      color: rgba(255,255,255,0.75);
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    /* ── Body ── */
+    .body {
+      padding: 40px 40px 32px;
+    }
+    .greeting {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1b5e20;
+      margin-bottom: 12px;
+    }
+    .body p {
+      font-size: 14px;
+      color: #444;
+      line-height: 1.7;
+      margin-bottom: 16px;
+    }
+
+    /* ── Info box ── */
+    .info-box {
+      background: #f1f8e9;
+      border-left: 4px solid #2e7d32;
+      border-radius: 0 10px 10px 0;
+      padding: 16px 20px;
+      margin: 24px 0;
+      font-size: 13px;
+      color: #2e7d32;
+      font-weight: 600;
+    }
+
+    /* ── CTA Button ── */
+    .btn-wrap {
+      text-align: center;
+      margin: 32px 0;
+    }
+    .btn {
+      display: inline-block;
+      background: linear-gradient(135deg, #2e7d32, #43a047);
+      color: #ffffff !important;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      padding: 16px 44px;
+      border-radius: 50px;
+      box-shadow: 0 6px 20px rgba(46,125,50,0.35);
+    }
+
+    /* ── Divider ── */
+    .divider {
+      border: none;
+      border-top: 1px solid #eeeeee;
+      margin: 28px 0;
+    }
+
+    /* ── Footer ── */
+    .footer {
+      background: #f8faf8;
+      border-top: 1px solid #e8f0e8;
+      padding: 24px 40px;
+      text-align: center;
+    }
+    .footer-brand {
+      font-size: 13px;
+      font-weight: 800;
+      color: #2e7d32;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+    .footer p {
+      font-size: 11px;
+      color: #aaa;
+      line-height: 1.6;
+    }
+    .footer a {
+      color: #2e7d32;
+      text-decoration: none;
+    }
+  </style>
 </head>
 <body>
-<h2>Welcome to Gura Neza, <span th:text="${name}"></span>!</h2>
-<p>Thank you for registering. Please verify your email by clicking the link below:</p>
-<a th:href="${verificationLink}">Click here to verify your email</a>
-<p>This link will expire in 24 hours.</p>
-<p>If you did not register, please ignore this email.</p>
+<div class="wrapper">
+  <div class="accent-bar"></div>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-logo">G</div>
+    <h1>Verify Your Email</h1>
+    <p>One quick step to activate your account</p>
+  </div>
+
+  <!-- Body -->
+  <div class="body">
+    <p class="greeting">Welcome, <span th:text="${name}">there</span>!</p>
+    <p>
+      Thanks for joining <strong>Gura Neza</strong> — Rwanda's premier digital marketplace.
+      To complete your registration and start shopping, please verify your email address.
+    </p>
+
+    <div class="info-box">
+      ⏱ &nbsp;This verification link expires in <strong>24 hours</strong>.
+    </div>
+
+    <div class="btn-wrap">
+      <a th:href="${verificationLink}" class="btn">Verify My Email Address</a>
+    </div>
+
+    <hr class="divider" />
+
+    <p style="font-size:12px; color:#999;">
+      If the button above doesn't work, copy and paste this link into your browser:<br />
+      <a th:href="${verificationLink}" th:text="${verificationLink}"
+         style="color:#2e7d32; word-break:break-all; font-size:11px;"></a>
+    </p>
+    <p style="font-size:12px; color:#bbb; margin-top:12px;">
+      If you didn't create a Gura Neza account, you can safely ignore this email.
+    </p>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div class="footer-brand">GURA NEZA</div>
+    <p>
+      &copy; 2026 Gura Neza Global. All rights reserved.<br />
+      This is an automated message — please do not reply directly to this email.
+    </p>
+  </div>
+</div>
 </body>
 </html>

@@ -104,13 +104,23 @@ public class ProductService {
         boolean hasSearch = search != null && !search.isBlank();
         boolean hasCategory = category != null && !category.isBlank() && !category.equalsIgnoreCase("ALL");
 
+        // Parse the category string to the enum — ignore if unrecognised
+        Category categoryEnum = null;
+        if (hasCategory) {
+            try {
+                categoryEnum = Category.valueOf(category.trim().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                hasCategory = false; // unknown value — treat as no filter
+            }
+        }
+
         Page<Product> result;
         if (hasSearch && hasCategory) {
-            result = productRepository.findByNameContainingIgnoreCaseAndCategory(search.trim(), category, pageable);
+            result = productRepository.findByNameContainingIgnoreCaseAndCategory(search.trim(), categoryEnum, pageable);
         } else if (hasSearch) {
             result = productRepository.findByNameContainingIgnoreCase(search.trim(), pageable);
         } else if (hasCategory) {
-            result = productRepository.findByCategory(category, pageable);
+            result = productRepository.findByCategory(categoryEnum, pageable);
         } else {
             result = productRepository.findAll(pageable);
         }

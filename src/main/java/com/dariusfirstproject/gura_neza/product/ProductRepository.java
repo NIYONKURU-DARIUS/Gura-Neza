@@ -11,11 +11,11 @@ import java.util.List;
 public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> findByNameContainingIgnoreCase(String name);
 
-    // Paged by category
-    Page<Product> findByCategory(String category, Pageable pageable);
+    // Paged by category (enum type — matches the entity field)
+    Page<Product> findByCategory(Category category, Pageable pageable);
 
     // Paged search with optional category
-    Page<Product> findByNameContainingIgnoreCaseAndCategory(String name, String category, Pageable pageable);
+    Page<Product> findByNameContainingIgnoreCaseAndCategory(String name, Category category, Pageable pageable);
     Page<Product> findByNameContainingIgnoreCase(String name, Pageable pageable);
 
     // For restock alerts

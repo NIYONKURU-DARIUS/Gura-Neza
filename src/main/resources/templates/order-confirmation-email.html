@@ -1,142 +1,213 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Order Confirmation</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 0;
-        }
-        .container {
-            max-width: 600px;
-            margin: 30px auto;
-            background-color: #ffffff;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        .header {
-            background-color: #2e7d32;
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
-        .header h1 {
-            margin: 0;
-            font-size: 24px;
-        }
-        .header p {
-            margin: 5px 0 0;
-            font-size: 14px;
-            opacity: 0.85;
-        }
-        .body {
-            padding: 30px;
-        }
-        .body h2 {
-            color: #2e7d32;
-            margin-top: 0;
-        }
-        .order-id {
-            background-color: #f1f8e9;
-            border-left: 4px solid #2e7d32;
-            padding: 12px 16px;
-            margin-bottom: 24px;
-            font-size: 14px;
-            color: #333;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 24px;
-        }
-        table thead {
-            background-color: #2e7d32;
-            color: white;
-        }
-        table thead th {
-            padding: 12px;
-            text-align: left;
-            font-size: 14px;
-        }
-        table tbody tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-        table tbody td {
-            padding: 12px;
-            font-size: 14px;
-            color: #444;
-            border-bottom: 1px solid #eee;
-        }
-        .total {
-            text-align: right;
-            font-size: 18px;
-            font-weight: bold;
-            color: #2e7d32;
-            margin-bottom: 24px;
-        }
-        .footer {
-            background-color: #f4f4f4;
-            text-align: center;
-            padding: 20px;
-            font-size: 12px;
-            color: #888;
-        }
-        .footer span {
-            color: #2e7d32;
-            font-weight: bold;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Order Confirmed – Gura Neza</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background-color: #f0f4f0;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      color: #1a1a1a;
+    }
+    .wrapper {
+      max-width: 620px;
+      margin: 40px auto;
+      background: #ffffff;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 4px 24px rgba(46,125,50,0.10);
+    }
+    .accent-bar {
+      height: 5px;
+      background: linear-gradient(90deg, #1b5e20, #2e7d32, #43a047, #66bb6a);
+    }
+    .header {
+      background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 60%, #388e3c 100%);
+      padding: 44px 40px 36px;
+      text-align: center;
+    }
+    .header-logo {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 56px;
+      height: 56px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 50%;
+      margin-bottom: 18px;
+      font-size: 26px;
+      font-weight: 900;
+      font-style: italic;
+      color: #ffffff;
+    }
+    .header h1 { color: #ffffff; font-size: 26px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 6px; }
+    .header p  { color: rgba(255,255,255,0.75); font-size: 13px; font-weight: 500; }
+
+    /* Status badge */
+    .status-badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.2);
+      color: #ffffff;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 5px 16px;
+      border-radius: 50px;
+      margin-top: 14px;
+      border: 1px solid rgba(255,255,255,0.3);
+    }
+
+    .body { padding: 40px 40px 32px; }
+    .greeting { font-size: 20px; font-weight: 700; color: #1b5e20; margin-bottom: 12px; }
+    .body p { font-size: 14px; color: #444; line-height: 1.7; margin-bottom: 16px; }
+
+    /* Order meta row */
+    .meta-row {
+      display: table;
+      width: 100%;
+      background: #f1f8e9;
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin: 24px 0;
+    }
+    .meta-cell {
+      display: table-cell;
+      font-size: 12px;
+      color: #555;
+      vertical-align: middle;
+    }
+    .meta-cell strong { display: block; font-size: 15px; color: #1b5e20; font-weight: 800; margin-bottom: 2px; }
+    .meta-cell + .meta-cell { text-align: right; }
+
+    /* Items table */
+    .items-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 8px 0 24px;
+      font-size: 13px;
+    }
+    .items-table thead tr {
+      background: #1b5e20;
+    }
+    .items-table thead th {
+      color: #ffffff;
+      padding: 11px 14px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+    }
+    .items-table thead th:last-child { text-align: right; }
+    .items-table tbody tr:nth-child(even) { background: #f9fdf9; }
+    .items-table tbody td {
+      padding: 12px 14px;
+      color: #444;
+      border-bottom: 1px solid #f0f0f0;
+      vertical-align: middle;
+    }
+    .items-table tbody td:last-child { text-align: right; font-weight: 600; color: #1b5e20; }
+
+    /* Total row */
+    .total-row {
+      background: #f1f8e9 !important;
+    }
+    .total-row td {
+      font-weight: 800 !important;
+      font-size: 15px !important;
+      color: #1b5e20 !important;
+      border-bottom: none !important;
+      padding: 14px !important;
+    }
+
+    .divider { border: none; border-top: 1px solid #eeeeee; margin: 28px 0; }
+
+    .footer {
+      background: #f8faf8;
+      border-top: 1px solid #e8f0e8;
+      padding: 24px 40px;
+      text-align: center;
+    }
+    .footer-brand { font-size: 13px; font-weight: 800; color: #2e7d32; letter-spacing: 0.5px; margin-bottom: 6px; }
+    .footer p { font-size: 11px; color: #aaa; line-height: 1.6; }
+  </style>
 </head>
 <body>
-<div class="container">
-    <div class="header">
-        <h1>Order Confirmed ✓</h1>
-        <p>Thank you for shopping with Gura Neza</p>
+<div class="wrapper">
+  <div class="accent-bar"></div>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-logo">G</div>
+    <h1>Order Confirmed</h1>
+    <p>Your order has been placed successfully</p>
+    <div class="status-badge">✓ &nbsp;Confirmed</div>
+  </div>
+
+  <!-- Body -->
+  <div class="body">
+    <p class="greeting">Hello, <span th:text="${name}">Customer</span>!</p>
+    <p>
+      Great news — your order has been received and is now being processed.
+      Below is a summary of what you ordered.
+    </p>
+
+    <!-- Order meta -->
+    <div class="meta-row">
+      <div class="meta-cell">
+        <strong th:text="'#' + ${orderId}">Order ID</strong>
+        Order Reference
+      </div>
+      <div class="meta-cell">
+        <strong th:text="${createdAt}">Date</strong>
+        Placed At
+      </div>
     </div>
-    <div class="body">
-        <h2>Hello, <span th:text="${name}"></span>!</h2>
-        <p>Your order has been placed successfully. Here are your order details:</p>
 
-        <div class="order-id">
-            Order ID: <strong th:text="'#' + ${orderId}"></strong> &nbsp;|&nbsp;
-            Placed at: <span th:text="${createdAt}"></span>
-        </div>
+    <!-- Items table -->
+    <table class="items-table">
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Qty</th>
+          <th>Unit Price</th>
+          <th>Subtotal</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr th:each="item : ${items}">
+          <td th:text="${item.productName}">Product Name</td>
+          <td th:text="${item.quantity}">1</td>
+          <td th:text="'$' + ${#numbers.formatDecimal(item.price, 1, 2)}">$0.00</td>
+          <td th:text="'$' + ${#numbers.formatDecimal(item.subtotal, 1, 2)}">$0.00</td>
+        </tr>
+        <tr class="total-row">
+          <td colspan="3">Total Amount</td>
+          <td th:text="'$' + ${#numbers.formatDecimal(totalPrice, 1, 2)}">$0.00</td>
+        </tr>
+      </tbody>
+    </table>
 
-        <table>
-            <thead>
-            <tr>
-                <th>Product</th>
-                <th>Quantity</th>
-                <th>Unit Price</th>
-                <th>Subtotal</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr th:each="item : ${items}">
-                <td th:text="${item.productName}"></td>
-                <td th:text="${item.quantity}"></td>
-                <td th:text="${item.price} + ' RWF'"></td>
-                <td th:text="${item.subtotal} + ' RWF'"></td>
-            </tr>
-            </tbody>
-        </table>
+    <hr class="divider" />
 
-        <div class="total">
-            Total: <span th:text="${totalPrice} + ' RWF'"></span>
-        </div>
+    <p style="font-size:13px; color:#777;">
+      We'll notify you once your order is out for delivery. If you have any questions,
+      our support team is always here to help.
+    </p>
+  </div>
 
-        <p style="color: #666; font-size: 13px;">
-            If you have any questions about your order, please contact our support team.
-        </p>
-    </div>
-    <div class="footer">
-        <p>© 2026 <span>Gura Neza</span>. All rights reserved.</p>
-        <p>This is an automated email, please do not reply.</p>
-    </div>
+  <!-- Footer -->
+  <div class="footer">
+    <div class="footer-brand">GURA NEZA</div>
+    <p>
+      &copy; 2026 Gura Neza Global. All rights reserved.<br />
+      This is an automated message — please do not reply directly to this email.
+    </p>
+  </div>
 </div>
 </body>
 </html>
