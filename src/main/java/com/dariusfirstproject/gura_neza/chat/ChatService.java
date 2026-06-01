@@ -10,8 +10,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -27,6 +27,7 @@ public class ChatService {
     public ChatMessageDto userSendMessage(String content) {
         User user = getCurrentUser();
 
+        // Use builder — @Builder.Default on readByAdmin requires it
         ChatMessage message = ChatMessage.builder()
                 .user(user)
                 .senderRole("USER")
@@ -38,18 +39,43 @@ public class ChatService {
 
         ChatMessageDto dto = toDto(message);
 
-        // Best-effort WebSocket push — message is already saved to DB regardless
         try {
             messagingTemplate.convertAndSend("/topic/admin/inbox", dto);
             messagingTemplate.convertAndSend("/topic/admin/thread/" + user.getId(), dto);
         } catch (Exception e) {
-            log.warn("WebSocket push failed for user message (saved to DB): {}", e.getMessage());
+            log.warn("WebSocket push failed for user message: {}", e.getMessage());
         }
 
+        sendAutoReply(user);
         return dto;
     }
 
-    // ── ADMIN sends a reply to a specific user ───────────────────────────────
+    // ── Auto-reply ───────────────────────────────────────────────────────────
+    private void sendAutoReply(User user) {
+        List<ChatMessage> thread = chatMessageRepository.findByUserIdOrderBySentAtAsc(user.getId());
+        if (!thread.isEmpty() && "ADMIN".equals(thread.get(thread.size() - 1).getSenderRole())) {
+            return;
+        }
+
+        ChatMessage autoMsg = ChatMessage.builder()
+                .user(user)
+                .senderRole("ADMIN")
+                .content("Thanks for reaching out! Our support team has received your message and will respond shortly. \uD83D\uDE4F")
+                .sentAt(LocalDateTime.now().plusSeconds(1))
+                .readByAdmin(true)
+                .build();
+        chatMessageRepository.save(autoMsg);
+
+        ChatMessageDto autoDto = toDto(autoMsg);
+        try {
+            messagingTemplate.convertAndSend("/topic/user/" + user.getId(), autoDto);
+            messagingTemplate.convertAndSend("/topic/admin/thread/" + user.getId(), autoDto);
+        } catch (Exception e) {
+            log.warn("WebSocket push failed for auto-reply: {}", e.getMessage());
+        }
+    }
+
+    // ── ADMIN sends a reply ──────────────────────────────────────────────────
     public ChatMessageDto adminSendMessage(Long userId, String content) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -65,56 +91,49 @@ public class ChatService {
 
         ChatMessageDto dto = toDto(message);
 
-        // Best-effort WebSocket push
         try {
             messagingTemplate.convertAndSend("/topic/user/" + userId, dto);
             messagingTemplate.convertAndSend("/topic/admin/thread/" + userId, dto);
         } catch (Exception e) {
-            log.warn("WebSocket push failed for admin reply (saved to DB): {}", e.getMessage());
+            log.warn("WebSocket push failed for admin reply: {}", e.getMessage());
         }
 
         return dto;
     }
 
-    // ── USER loads their own message history ─────────────────────────────────
-    @Transactional(readOnly = true)
+    // ── USER history ─────────────────────────────────────────────────────────
     public List<ChatMessageDto> getUserHistory() {
         User user = getCurrentUser();
-        return chatMessageRepository.findByUserIdOrderBySentAtAsc(user.getId())
-                .stream().map(this::toDto).collect(Collectors.toList());
+        List<ChatMessage> messages = chatMessageRepository.findByUserIdOrderBySentAtAsc(user.getId());
+        List<ChatMessageDto> result = new ArrayList<>();
+        for (ChatMessage m : messages) result.add(toDto(m));
+        return result;
     }
 
-    // ── ADMIN loads one user's thread ────────────────────────────────────────
-    @Transactional(readOnly = true)
+    // ── ADMIN thread ─────────────────────────────────────────────────────────
     public List<ChatMessageDto> getThreadForUser(Long userId) {
-        // Mark all USER messages in this thread as read
         chatMessageRepository.markAllAsReadForUser(userId);
-        return chatMessageRepository.findByUserIdOrderBySentAtAsc(userId)
-                .stream().map(this::toDto).collect(Collectors.toList());
+        List<ChatMessage> messages = chatMessageRepository.findByUserIdOrderBySentAtAsc(userId);
+        List<ChatMessageDto> result = new ArrayList<>();
+        for (ChatMessage m : messages) result.add(toDto(m));
+        return result;
     }
 
-    // ── ADMIN loads the inbox (all users + unread counts) ────────────────────
-    @Transactional(readOnly = true)
+    // ── ADMIN inbox ──────────────────────────────────────────────────────────
     public List<ChatInboxItem> getAdminInbox() {
-        return chatMessageRepository.findDistinctUsers().stream()
-                .map(user -> {
-                    long unread = chatMessageRepository
-                            .countByUserIdAndReadByAdminFalseAndSenderRole(user.getId(), "USER");
+        List<User> users = chatMessageRepository.findDistinctUsers();
+        List<ChatInboxItem> result = new ArrayList<>();
+        for (User u : users) {
+            long unread = chatMessageRepository
+                    .countByUserIdAndReadByAdminFalseAndSenderRole(u.getId(), "USER");
+            List<ChatMessage> thread = chatMessageRepository.findByUserIdOrderBySentAtAsc(u.getId());
+            String lastMessage = thread.isEmpty() ? "" : thread.get(thread.size() - 1).getContent();
 
-                    List<ChatMessage> thread = chatMessageRepository
-                            .findByUserIdOrderBySentAtAsc(user.getId());
-                    String lastMessage = thread.isEmpty() ? ""
-                            : thread.get(thread.size() - 1).getContent();
-
-                    return ChatInboxItem.builder()
-                            .userId(user.getId())
-                            .userName(user.getName())
-                            .userEmail(user.getEmail())
-                            .unreadCount(unread)
-                            .lastMessage(lastMessage)
-                            .build();
-                })
-                .collect(Collectors.toList());
+            // Use @AllArgsConstructor: (userId, userName, userEmail, unreadCount, lastMessage)
+            ChatInboxItem item = new ChatInboxItem(u.getId(), u.getName(), u.getEmail(), unread, lastMessage);
+            result.add(item);
+        }
+        return result;
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -125,14 +144,15 @@ public class ChatService {
     }
 
     private ChatMessageDto toDto(ChatMessage m) {
-        return ChatMessageDto.builder()
-                .id(m.getId())
-                .userId(m.getUser().getId())
-                .userName(m.getUser().getName())
-                .senderRole(m.getSenderRole())
-                .content(m.getContent())
-                .sentAt(m.getSentAt())
-                .readByAdmin(m.isReadByAdmin())
-                .build();
+        // Use @AllArgsConstructor: (id, userId, userName, senderRole, content, sentAt, readByAdmin)
+        return new ChatMessageDto(
+                m.getId(),
+                m.getUser().getId(),
+                m.getUser().getName(),
+                m.getSenderRole(),
+                m.getContent(),
+                m.getSentAt(),
+                m.isReadByAdmin()
+        );
     }
 }

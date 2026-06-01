@@ -40,8 +40,10 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
 // Inner component so we can use useLocation inside Router
 function AppRoutes() {
   const location = useLocation();
-  const hideChatOn = ['/', '/login', '/register', '/admin', '/dashboard'];
-  const showChat = !hideChatOn.includes(location.pathname);
+  // Hide chat on public/auth pages and admin — show on all user pages
+  const hideChatOn = ['/', '/login', '/register'];
+  const showChat = !hideChatOn.includes(location.pathname) &&
+                   !location.pathname.startsWith('/admin');
 
   return (
     <div className="app">

@@ -4,6 +4,7 @@ import { Star, ShoppingCart, Eye, Heart, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useStore } from '../context/store';
 import { productService, type Product } from '../services/productService';
+import { getStockInfo } from '../services/stockUtils';
 
 interface ProductCardProps {
   product: Product;
@@ -13,13 +14,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product: initialProduct }) =>
   const [product, setProduct] = useState(initialProduct);
   const [isLiking, setIsLiking] = useState(false);
   const { addToCart } = useStore();
-
-  const getStockColor = () => {
-    const stock = product.stock || 0;
-    if (stock === 0) return { label: 'Out of Stock', bg: 'bg-red/10', text: 'text-red', dot: 'bg-red' };
-    if (stock < 10) return { label: 'Low Stock', bg: 'bg-amber/10', text: 'text-amber', dot: 'bg-amber' };
-    return { label: 'In Stock', bg: 'bg-primary/10', text: 'text-primary', dot: 'bg-primary' };
-  };
 
   const handleLike = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -48,7 +42,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product: initialProduct }) =>
     }
   };
 
-  const stockInfo = getStockColor();
+  const stockInfo = getStockInfo(product.stock ?? 0);
 
   return (
     <motion.div
@@ -110,10 +104,21 @@ const ProductCard: React.FC<ProductCardProps> = ({ product: initialProduct }) =>
       <div className="flex flex-col flex-grow p-8">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-1 text-gold">
-            {[...Array(5)].map((_, i) => (
-              <Star key={i} size={14} fill={i < Math.floor(product.rating || 4) ? "currentColor" : "none"} strokeWidth={i < Math.floor(product.rating || 4) ? 0 : 2} />
-            ))}
-            <span className="text-[10px] text-[var(--text-s)] font-black ml-2 uppercase tracking-widest">({product.rating || 4.0})</span>
+            {product.totalReviews === 0 ? (
+              <span className="text-[10px] text-[var(--text-s)] font-black uppercase tracking-widest">No ratings yet</span>
+            ) : (
+              <>
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} size={13}
+                    fill={i < Math.round(product.rating || 0) ? 'currentColor' : 'none'}
+                    strokeWidth={i < Math.round(product.rating || 0) ? 0 : 1.5}
+                  />
+                ))}
+                <span className="text-[10px] text-[var(--text-s)] font-black ml-1 uppercase tracking-widest">
+                  {(product.rating || 0).toFixed(1)} ({product.totalReviews})
+                </span>
+              </>
+            )}
           </div>
           <span className={`text-[10px] font-black uppercase tracking-widest ${product.likedByCurrentUser ? 'text-red' : 'text-[var(--text-s)]'}`}>
             {product.likesCount || 0} {product.likedByCurrentUser ? '♥' : 'Likes'}

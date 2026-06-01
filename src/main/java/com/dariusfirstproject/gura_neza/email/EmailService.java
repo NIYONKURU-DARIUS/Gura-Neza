@@ -113,4 +113,34 @@ public class EmailService {
             throw new RuntimeException("Failed to send cancellation email: " + e.getMessage());
         }
     }
+
+    // ✅ NEW — Order delivery confirmation with PDF receipt
+    public void sendOrderDeliveryEmail(String to, String name, OrderResponse order) {
+        try {
+            Context context = new Context();
+            context.setVariable("name", name);
+            context.setVariable("orderId", order.getId());
+            context.setVariable("items", order.getItems());
+            context.setVariable("totalPrice", order.getTotalPrice());
+            context.setVariable("createdAt", order.getCreatedAt());
+
+            String html = templateEngine.process("order-delivery-email", context);
+
+            var message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+            helper.setTo(to);
+            helper.setFrom("noreply@guraneza.com");
+            helper.setSubject("Your order #" + order.getId() + " has been delivered!");
+            helper.setText(html, true);
+
+            // Attach PDF receipt
+            byte[] pdfBytes = pdfReceiptService.generateReceipt(order, name);
+            helper.addAttachment("receipt-order-" + order.getId() + ".pdf",
+                    new org.springframework.core.io.ByteArrayResource(pdfBytes));
+
+            mailSender.send(message);
+        } catch (Exception e) {
+            log.warn("Could not send delivery email to {}: {}", to, e.getMessage());
+        }
+    }
 }

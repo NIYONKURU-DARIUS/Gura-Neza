@@ -32,13 +32,35 @@ const Navbar: React.FC<NavbarProps> = ({ onSearch }) => {
     <nav className="fixed top-0 w-full z-50 bg-[var(--navbar-bg)] border-b border-[var(--border-c)] h-20 px-4 sm:px-[5%] flex items-center justify-between transition-colors duration-500">
       {/* Logo & Navigation */}
       <div className="flex items-center gap-10">
-        <Link to="/" className="flex items-center gap-2 group">
-          <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center transform group-hover:rotate-12 transition-transform shadow-lg shadow-primary/20">
-             <span className="text-white font-black text-xl italic">G</span>
+        <Link to="/" className="flex items-center gap-2.5 group">
+          {/* Creative logo mark */}
+          <div className="relative w-10 h-10 flex-shrink-0">
+            <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-lg group-hover:scale-110 transition-transform duration-300">
+              {/* Background shape — rounded diamond */}
+              <rect x="4" y="4" width="32" height="32" rx="10" fill="url(#navGrad)" />
+              {/* Shine overlay */}
+              <rect x="4" y="4" width="32" height="16" rx="10" fill="url(#navShine)" />
+              {/* G letterform */}
+              <text x="7" y="29" fontFamily="Georgia, serif" fontWeight="900" fontStyle="italic" fontSize="24" fill="white" letterSpacing="-1">G</text>
+              {/* Small accent dot */}
+              <circle cx="32" cy="10" r="3" fill="#4ade80" opacity="0.9" />
+              <defs>
+                <linearGradient id="navGrad" x1="4" y1="4" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stopColor="#2E7D32" />
+                  <stop offset="100%" stopColor="#1b5e20" />
+                </linearGradient>
+                <linearGradient id="navShine" x1="4" y1="4" x2="4" y2="20" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stopColor="white" stopOpacity="0.15" />
+                  <stop offset="100%" stopColor="white" stopOpacity="0" />
+                </linearGradient>
+              </defs>
+            </svg>
           </div>
-          <span className="text-xl sm:text-2xl font-black text-primary tracking-tighter italic transition-all hidden sm:block">
-            GURA NEZA
-          </span>
+          {/* Wordmark */}
+          <div className="hidden sm:flex flex-col leading-none">
+            <span className="text-lg font-black text-primary tracking-tighter italic leading-none">GURA NEZA</span>
+            <span className="text-[7px] font-black text-[var(--text-s)] uppercase tracking-[0.3em] mt-0.5">Marketplace</span>
+          </div>
         </Link>
 
         {/* Global Nav */}

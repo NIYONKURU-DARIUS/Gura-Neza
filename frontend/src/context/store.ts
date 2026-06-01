@@ -22,7 +22,7 @@ interface GuraState {
   isDarkMode: boolean;
   token: string | null;
   isLoadingCart: boolean;
-  
+
   // Actions
   setUser: (user: User | null) => void;
   setToken: (token: string | null) => void;

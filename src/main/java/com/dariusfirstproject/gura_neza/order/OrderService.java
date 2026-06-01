@@ -182,7 +182,17 @@ public class OrderService {
         order.setOrderStatus(OrderStatus.DELIVERED);
         orderRepository.save(order);
         order.setItems(orderItemRepository.findByOrderId(order.getId()));
-        return mapToResponse(order);
+
+        OrderResponse response = mapToResponse(order);
+
+        // Send delivery confirmation email with PDF receipt (best-effort)
+        emailService.sendOrderDeliveryEmail(
+                order.getUser().getEmail(),
+                order.getUser().getName(),
+                response
+        );
+
+        return response;
     }
 
     // ── ADMIN: cancel order ──────────────────────────────────────────────

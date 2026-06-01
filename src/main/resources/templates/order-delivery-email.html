@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 30px auto; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .header { background: linear-gradient(135deg, #1B5E20, #2E7D32); color: white; padding: 32px; text-align: center; }
+    .header h1 { margin: 0; font-size: 24px; }
+    .header p { margin: 8px 0 0; opacity: 0.85; }
+    .body { padding: 32px; }
+    .body h2 { color: #1B5E20; margin-top: 0; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    th { background: #f1f8e9; color: #1B5E20; padding: 10px; text-align: left; font-size: 12px; text-transform: uppercase; }
+    td { padding: 10px; border-bottom: 1px solid #eee; font-size: 14px; }
+    .total-row td { font-weight: bold; border-top: 2px solid #1B5E20; }
+    .footer { background: #f9f9f9; padding: 20px 32px; text-align: center; color: #888; font-size: 12px; }
+    .badge { display: inline-block; background: #e8f5e9; color: #1B5E20; padding: 6px 16px; border-radius: 20px; font-weight: bold; font-size: 14px; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>🎉 Order Delivered!</h1>
+    <p>Your order has been successfully delivered</p>
+  </div>
+  <div class="body">
+    <h2>Hi <span th:text="${name}">Customer</span>,</h2>
+    <p>Great news! Your order <strong>#<span th:text="${orderId}">0</span></strong> has been delivered. We hope you enjoy your purchase!</p>
+    <p><span class="badge">✓ DELIVERED</span></p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Qty</th>
+          <th>Unit Price</th>
+          <th>Subtotal</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr th:each="item : ${items}">
+          <td th:text="${item.productName}">Product</td>
+          <td th:text="${item.quantity}">1</td>
+          <td th:text="'$' + ${#numbers.formatDecimal(item.price, 1, 2)}">$0.00</td>
+          <td th:text="'$' + ${#numbers.formatDecimal(item.subtotal, 1, 2)}">$0.00</td>
+        </tr>
+        <tr class="total-row">
+          <td colspan="3">Total</td>
+          <td th:text="'$' + ${#numbers.formatDecimal(totalPrice, 1, 2)}">$0.00</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>A PDF receipt is attached to this email for your records.</p>
+    <p>Thank you for shopping with <strong>Gura Neza</strong>!</p>
+  </div>
+  <div class="footer">
+    &copy; 2026 Gura Neza Global. All rights reserved.<br/>
+    This is an automated email — please do not reply.
+  </div>
+</div>
+</body>
+</html>

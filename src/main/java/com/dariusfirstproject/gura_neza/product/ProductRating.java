@@ -1,4 +1,4 @@
-package com.dariusfirstproject.gura_neza.chat;
+package com.dariusfirstproject.gura_neza.product;
 
 import com.dariusfirstproject.gura_neza.user.User;
 import jakarta.persistence.*;
@@ -7,33 +7,30 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "chat_messages")
-@Getter
-@Setter
+@Table(name = "product_ratings", uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"product_id", "user_id"})
+})
+@Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-@EqualsAndHashCode(of = "id")
-@ToString(exclude = "user")
-public class ChatMessage {
+public class ProductRating {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_id", nullable = false)
+    private Product product;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @Column(nullable = false)
-    private String senderRole;
-
-    @Column(nullable = false, columnDefinition = "TEXT")
-    private String content;
+    private Integer rating; // 1-5
 
     @Column(nullable = false)
-    private LocalDateTime sentAt;
-
-    @Column(nullable = false)
-    private boolean readByAdmin = false;
+    private LocalDateTime createdAt;
 }

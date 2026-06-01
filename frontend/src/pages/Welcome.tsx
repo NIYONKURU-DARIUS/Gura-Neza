@@ -4,7 +4,7 @@ import {
   ArrowRight, Coffee, Smartphone, Shirt, Heart,
   ShoppingCart, Menu, Package, MessageSquare,
   Wallet, Shield, Zap, Star, ChevronDown,
-  X, TrendingUp, Users, Globe, Sparkles
+  X, TrendingUp, Users, Globe, Sparkles, Sun, Moon
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useStore } from '../context/store';
@@ -108,9 +108,22 @@ const Welcome: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeTestimonial, setActiveTestimonial] = useState(0);
+  const [darkMode, setDarkMode] = useState(false);
   const { scrollY } = useScroll();
   const { token } = useStore();
   const heroRef = useRef<HTMLDivElement>(null);
+
+  // Shorthand helpers
+  const bg = darkMode ? 'bg-[#080808]' : 'bg-white';
+  const bgAlt = darkMode ? 'bg-[#0d0d0d]' : 'bg-gray-50';
+  const text = darkMode ? 'text-white' : 'text-gray-900';
+  const textMuted = darkMode ? 'text-white/40' : 'text-gray-500';
+  const textFaint = darkMode ? 'text-white/20' : 'text-gray-400';
+  const textDim = darkMode ? 'text-white/30' : 'text-gray-400';
+  const textSub = darkMode ? 'text-white/60' : 'text-gray-600';
+  const border = darkMode ? 'border-white/5' : 'border-gray-200';
+  const cardBg = darkMode ? 'bg-white/[0.03]' : 'bg-white';
+  const cardBorder = darkMode ? 'border-white/5 hover:border-white/10' : 'border-gray-200 hover:border-gray-300';
 
   const heroY = useTransform(scrollY, [0, 600], [0, -120]);
   const heroOpacity = useTransform(scrollY, [0, 400], [1, 0]);
@@ -130,12 +143,14 @@ const Welcome: React.FC = () => {
   }, []);
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#080808] overflow-x-hidden">
+    <div className={`flex flex-col min-h-screen ${bg} overflow-x-hidden transition-colors duration-300`}>
 
       {/* ── NAVBAR ─────────────────────────────────────────────────────── */}
       <header className={`fixed top-0 w-full z-[100] transition-all duration-500 ${
         isScrolled
-          ? 'bg-black/80 backdrop-blur-2xl border-b border-white/5 shadow-2xl shadow-black/50'
+          ? darkMode
+            ? 'bg-black/80 backdrop-blur-2xl border-b border-white/5 shadow-2xl shadow-black/50'
+            : 'bg-white/90 backdrop-blur-2xl border-b border-gray-200 shadow-lg shadow-gray-200/50'
           : 'bg-transparent'
       }`}>
         <div className="max-w-[1400px] mx-auto px-6 sm:px-10 h-20 flex items-center justify-between">
@@ -144,7 +159,7 @@ const Welcome: React.FC = () => {
             <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/30 group-hover:shadow-primary/50 transition-all group-hover:scale-110">
               <span className="text-white font-black text-lg italic">G</span>
             </div>
-            <span className="text-lg font-black tracking-tighter italic text-white">GURA NEZA</span>
+            <span className={`text-lg font-black tracking-tighter italic ${text}`}>GURA NEZA</span>
           </Link>
 
           {/* Desktop nav */}
@@ -157,7 +172,7 @@ const Welcome: React.FC = () => {
               <a
                 key={item.label}
                 href={item.href}
-                className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50 hover:text-white transition-colors"
+                className={`text-[10px] font-black uppercase tracking-[0.2em] ${textMuted} hover:${text} transition-colors`}
               >
                 {item.label}
               </a>
@@ -166,10 +181,22 @@ const Welcome: React.FC = () => {
 
           {/* CTA buttons */}
           <div className="flex items-center gap-3">
+            {/* Dark/Light toggle */}
+            <button
+              onClick={() => setDarkMode(!darkMode)}
+              className={`p-2 rounded-xl border transition-all ${
+                darkMode
+                  ? 'bg-white/5 border-white/10 text-white/70 hover:text-white hover:bg-white/10'
+                  : 'bg-gray-100 border-gray-200 text-gray-600 hover:text-gray-900 hover:bg-gray-200'
+              }`}
+              title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            >
+              {darkMode ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
             {!token ? (
               <>
                 <Link to="/login">
-                  <button className="hidden sm:flex text-[10px] font-black uppercase tracking-widest text-white/70 hover:text-white transition-colors px-4 py-2">
+                  <button className={`hidden sm:flex text-[10px] font-black uppercase tracking-widest ${textMuted} hover:${text} transition-colors px-4 py-2`}>
                     Sign In
                   </button>
                 </Link>
@@ -188,7 +215,7 @@ const Welcome: React.FC = () => {
             )}
             <button
               onClick={() => setMobileMenuOpen(true)}
-              className="md:hidden p-2 text-white/70 hover:text-white transition-colors"
+              className={`md:hidden p-2 ${textMuted} hover:${text} transition-colors`}
             >
               <Menu size={20} />
             </button>
@@ -203,11 +230,11 @@ const Welcome: React.FC = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-2xl flex flex-col p-10"
+            className={`fixed inset-0 z-[200] ${darkMode ? 'bg-black/95' : 'bg-white/98'} backdrop-blur-2xl flex flex-col p-10`}
           >
             <div className="flex justify-between items-center mb-16">
-              <span className="text-xl font-black italic text-white tracking-tighter">GURA NEZA</span>
-              <button onClick={() => setMobileMenuOpen(false)} className="text-white/50 hover:text-white">
+              <span className={`text-xl font-black italic ${text} tracking-tighter`}>GURA NEZA</span>
+              <button onClick={() => setMobileMenuOpen(false)} className={`${textMuted} hover:${text}`}>
                 <X size={24} />
               </button>
             </div>
@@ -217,7 +244,7 @@ const Welcome: React.FC = () => {
                   key={item}
                   href={`#${item.toLowerCase()}`}
                   onClick={() => setMobileMenuOpen(false)}
-                  className="text-3xl font-black italic text-white/30 hover:text-white transition-colors tracking-tighter"
+                  className={`text-3xl font-black italic ${textMuted} hover:${text} transition-colors tracking-tighter`}
                 >
                   {item}
                 </a>
@@ -225,7 +252,7 @@ const Welcome: React.FC = () => {
             </nav>
             <div className="mt-auto flex flex-col gap-4">
               <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
-                <button className="w-full border border-white/20 text-white font-black py-4 rounded-2xl text-sm uppercase tracking-widest hover:bg-white/5 transition-all">
+                <button className={`w-full border ${darkMode ? 'border-white/20 text-white hover:bg-white/5' : 'border-gray-300 text-gray-900 hover:bg-gray-50'} font-black py-4 rounded-2xl text-sm uppercase tracking-widest transition-all`}>
                   Sign In
                 </button>
               </Link>
@@ -240,7 +267,7 @@ const Welcome: React.FC = () => {
       </AnimatePresence>
 
       {/* ── HERO ───────────────────────────────────────────────────────── */}
-      <section ref={heroRef} className="relative h-screen min-h-[700px] flex items-center justify-center overflow-hidden bg-black">
+      <section ref={heroRef} className={`relative h-screen min-h-[700px] flex items-center justify-center overflow-hidden ${darkMode ? 'bg-black' : 'bg-gray-900'}`}>
         {/* Background image with parallax */}
         <motion.div
           style={{ scale: heroScale }}
@@ -248,12 +275,12 @@ const Welcome: React.FC = () => {
         >
           <img
             src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=2070"
-            className="w-full h-full object-cover opacity-30"
+            className={`w-full h-full object-cover ${darkMode ? 'opacity-30' : 'opacity-50'}`}
             alt="hero"
           />
           {/* Gradient overlays */}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/20 to-black" />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-black/60" />
+          <div className={`absolute inset-0 ${darkMode ? 'bg-gradient-to-b from-black/70 via-black/20 to-black' : 'bg-gradient-to-b from-gray-900/80 via-gray-900/30 to-gray-900'}`} />
+          <div className={`absolute inset-0 ${darkMode ? 'bg-gradient-to-r from-black/60 via-transparent to-black/60' : 'bg-gradient-to-r from-gray-900/60 via-transparent to-gray-900/60'}`} />
         </motion.div>
 
         {/* Animated grid lines */}
@@ -344,8 +371,7 @@ const Welcome: React.FC = () => {
         <motion.div
           animate={{ y: [0, 8, 0] }}
           transition={{ repeat: Infinity, duration: 2 }}
-          className="absolute bottom-10 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 text-white/20"
-        >
+          className="absolute bottom-10 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 text-white/20"        >
           <span className="text-[8px] font-black uppercase tracking-[0.4em]">Scroll</span>
           <ChevronDown size={16} />
         </motion.div>
@@ -370,7 +396,7 @@ const Welcome: React.FC = () => {
       </section>
 
       {/* ── CATEGORIES ─────────────────────────────────────────────────── */}
-      <section id="categories" className="py-32 px-4 sm:px-10 bg-[#080808]">
+      <section id="categories" className={`py-32 px-4 sm:px-10 ${bg} transition-colors duration-300`}>
         <div className="max-w-[1400px] mx-auto">
           {/* Section header */}
           <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
@@ -388,7 +414,7 @@ const Welcome: React.FC = () => {
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                className="text-4xl sm:text-6xl font-black text-white italic tracking-tighter leading-[0.9]"
+                className={`text-4xl sm:text-6xl font-black ${text} italic tracking-tighter leading-[0.9]`}
               >
                 Shop by
                 <br />
@@ -400,7 +426,7 @@ const Welcome: React.FC = () => {
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
                 viewport={{ once: true }}
-                className="flex items-center gap-2 text-white/40 hover:text-white transition-colors font-black text-[10px] uppercase tracking-widest group"
+                className={`flex items-center gap-2 ${textMuted} hover:${text} transition-colors font-black text-[10px] uppercase tracking-widest group`}
               >
                 View All
                 <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
@@ -421,7 +447,7 @@ const Welcome: React.FC = () => {
                 className="group relative cursor-pointer"
               >
                 <Link to={token ? '/products' : '/login'}>
-                  <div className="relative h-[340px] rounded-3xl overflow-hidden border border-white/5">
+                  <div className={`relative h-[340px] rounded-3xl overflow-hidden border ${darkMode ? 'border-white/5' : 'border-gray-200'}`}>
                     {/* Image */}
                     <img
                       src={cat.image}
@@ -463,7 +489,7 @@ const Welcome: React.FC = () => {
       </section>
 
       {/* ── FEATURES ───────────────────────────────────────────────────── */}
-      <section id="features" className="py-32 px-4 sm:px-10 bg-[#0d0d0d]">
+      <section id="features" className={`py-32 px-4 sm:px-10 ${bgAlt} transition-colors duration-300`}>
         <div className="max-w-[1400px] mx-auto">
           <div className="text-center mb-20">
             <motion.div
@@ -480,7 +506,7 @@ const Welcome: React.FC = () => {
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="text-4xl sm:text-6xl font-black text-white italic tracking-tighter leading-[0.9]"
+              className={`text-4xl sm:text-6xl font-black ${text} italic tracking-tighter leading-[0.9]`}
             >
               Built for the
               <br />
@@ -497,7 +523,7 @@ const Welcome: React.FC = () => {
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
                 whileHover={{ y: -4 }}
-                className="group relative bg-white/[0.03] border border-white/5 rounded-3xl p-8 hover:border-white/10 transition-all duration-500 overflow-hidden"
+                className={`group relative ${cardBg} border ${cardBorder} rounded-3xl p-8 transition-all duration-500 overflow-hidden shadow-sm`}
               >
                 {/* Gradient glow on hover */}
                 <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-500 bg-gradient-to-br ${f.color}`} />
@@ -505,8 +531,8 @@ const Welcome: React.FC = () => {
                 <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${f.color} flex items-center justify-center text-white mb-6 shadow-xl`}>
                   {f.icon}
                 </div>
-                <h3 className="text-lg font-black text-white italic tracking-tighter mb-3">{f.title}</h3>
-                <p className="text-white/40 font-bold text-xs leading-relaxed">{f.desc}</p>
+                <h3 className={`text-lg font-black ${text} italic tracking-tighter mb-3`}>{f.title}</h3>
+                <p className={`${textMuted} font-bold text-xs leading-relaxed`}>{f.desc}</p>
               </motion.div>
             ))}
           </div>
@@ -514,7 +540,7 @@ const Welcome: React.FC = () => {
       </section>
 
       {/* ── SPLIT CTA BANNER ───────────────────────────────────────────── */}
-      <section className="py-8 px-4 sm:px-10 bg-[#080808]">
+      <section className={`py-8 px-4 sm:px-10 ${bg} transition-colors duration-300`}>
         <div className="max-w-[1400px] mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -573,7 +599,7 @@ const Welcome: React.FC = () => {
       </section>
 
       {/* ── TESTIMONIALS ───────────────────────────────────────────────── */}
-      <section id="reviews" className="py-32 px-4 sm:px-10 bg-[#080808]">
+      <section id="reviews" className={`py-32 px-4 sm:px-10 ${bg} transition-colors duration-300`}>
         <div className="max-w-[1400px] mx-auto">
           <div className="text-center mb-16">
             <motion.div
@@ -590,7 +616,7 @@ const Welcome: React.FC = () => {
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="text-4xl sm:text-6xl font-black text-white italic tracking-tighter leading-[0.9]"
+              className={`text-4xl sm:text-6xl font-black ${text} italic tracking-tighter leading-[0.9]`}
             >
               Loved by
               <br />
@@ -607,10 +633,10 @@ const Welcome: React.FC = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.12 }}
-                className={`relative bg-white/[0.03] border rounded-3xl p-8 transition-all duration-500 ${
+                className={`relative ${cardBg} border rounded-3xl p-8 transition-all duration-500 shadow-sm ${
                   activeTestimonial === i
                     ? 'border-primary/40 bg-primary/5 shadow-xl shadow-primary/10'
-                    : 'border-white/5 hover:border-white/10'
+                    : `${cardBorder}`
                 }`}
               >
                 {/* Stars */}
@@ -619,7 +645,7 @@ const Welcome: React.FC = () => {
                     <Star key={j} size={14} className="text-amber-400 fill-amber-400" />
                   ))}
                 </div>
-                <p className="text-white/60 font-bold text-sm leading-relaxed mb-8 italic">
+                <p className={`${textSub} font-bold text-sm leading-relaxed mb-8 italic`}>
                   "{t.text}"
                 </p>
                 <div className="flex items-center gap-4">
@@ -627,8 +653,8 @@ const Welcome: React.FC = () => {
                     {t.avatar}
                   </div>
                   <div>
-                    <p className="text-white font-black text-sm tracking-tight">{t.name}</p>
-                    <p className="text-white/30 font-bold text-[10px] uppercase tracking-widest">{t.role}</p>
+                    <p className={`${text} font-black text-sm tracking-tight`}>{t.name}</p>
+                    <p className={`${textDim} font-bold text-[10px] uppercase tracking-widest`}>{t.role}</p>
                   </div>
                 </div>
               </motion.div>
@@ -642,7 +668,7 @@ const Welcome: React.FC = () => {
                 key={i}
                 onClick={() => setActiveTestimonial(i)}
                 className={`rounded-full transition-all duration-300 ${
-                  activeTestimonial === i ? 'w-8 h-2 bg-primary' : 'w-2 h-2 bg-white/20 hover:bg-white/40'
+                  activeTestimonial === i ? 'w-8 h-2 bg-primary' : `w-2 h-2 ${darkMode ? 'bg-white/20 hover:bg-white/40' : 'bg-gray-300 hover:bg-gray-400'}`
                 }`}
               />
             ))}
@@ -651,7 +677,7 @@ const Welcome: React.FC = () => {
       </section>
 
       {/* ── STATS SECTION ──────────────────────────────────────────────── */}
-      <section className="py-24 px-4 sm:px-10 bg-[#0d0d0d] border-y border-white/5">
+      <section className={`py-24 px-4 sm:px-10 ${bgAlt} border-y ${border} transition-colors duration-300`}>
         <div className="max-w-[1400px] mx-auto">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
             {stats.map((s, i) => (
@@ -666,8 +692,8 @@ const Welcome: React.FC = () => {
                 <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-4 border border-primary/20">
                   {s.icon}
                 </div>
-                <h3 className="text-4xl font-black text-white italic tracking-tighter mb-1">{s.value}</h3>
-                <p className="text-white/30 font-black text-[10px] uppercase tracking-widest">{s.label}</p>
+                <h3 className={`text-4xl font-black ${text} italic tracking-tighter mb-1`}>{s.value}</h3>
+                <p className={`${textDim} font-black text-[10px] uppercase tracking-widest`}>{s.label}</p>
               </motion.div>
             ))}
           </div>
@@ -675,7 +701,7 @@ const Welcome: React.FC = () => {
       </section>
 
       {/* ── FOOTER ─────────────────────────────────────────────────────── */}
-      <footer className="py-20 px-4 sm:px-10 bg-[#080808]">
+      <footer className={`py-20 px-4 sm:px-10 ${bg} transition-colors duration-300`}>
         <div className="max-w-[1400px] mx-auto">
           <div className="flex flex-col lg:flex-row justify-between gap-16 mb-16">
             {/* Brand */}
@@ -684,15 +710,15 @@ const Welcome: React.FC = () => {
                 <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/30">
                   <span className="text-white font-black text-lg italic">G</span>
                 </div>
-                <span className="text-xl font-black italic text-white tracking-tighter">GURA NEZA</span>
+                <span className={`text-xl font-black italic ${text} tracking-tighter`}>GURA NEZA</span>
               </div>
-              <p className="text-white/30 font-bold text-sm leading-relaxed">
+              <p className={`${textDim} font-bold text-sm leading-relaxed`}>
                 Redefining commerce in Rwanda. Local authenticity meets world-class digital innovation.
               </p>
               {/* Social links placeholder */}
               <div className="flex gap-3 mt-8">
                 {['TW', 'IG', 'FB', 'LI'].map(s => (
-                  <div key={s} className="w-9 h-9 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-white/30 hover:text-white hover:bg-white/10 transition-all cursor-pointer text-[9px] font-black">
+                  <div key={s} className={`w-9 h-9 ${darkMode ? 'bg-white/5 border-white/10 text-white/30 hover:text-white hover:bg-white/10' : 'bg-gray-100 border-gray-200 text-gray-400 hover:text-gray-700 hover:bg-gray-200'} border rounded-xl flex items-center justify-center transition-all cursor-pointer text-[9px] font-black`}>
                     {s}
                   </div>
                 ))}
@@ -733,11 +759,11 @@ const Welcome: React.FC = () => {
                     {col.links.map(link => (
                       <li key={link.label}>
                         {'to' in link ? (
-                          <Link to={link.to} className="text-white/30 hover:text-white transition-colors font-bold text-[11px] uppercase tracking-widest">
+                          <Link to={link.to} className={`${textDim} hover:${text} transition-colors font-bold text-[11px] uppercase tracking-widest`}>
                             {link.label}
                           </Link>
                         ) : (
-                          <a href={link.href} className="text-white/30 hover:text-white transition-colors font-bold text-[11px] uppercase tracking-widest">
+                          <a href={link.href} className={`${textDim} hover:${text} transition-colors font-bold text-[11px] uppercase tracking-widest`}>
                             {link.label}
                           </a>
                         )}
@@ -750,13 +776,13 @@ const Welcome: React.FC = () => {
           </div>
 
           {/* Bottom bar */}
-          <div className="pt-8 border-t border-white/5 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <p className="text-white/20 text-[9px] font-black uppercase tracking-[0.4em]">
+          <div className={`pt-8 border-t ${border} flex flex-col sm:flex-row justify-between items-center gap-4`}>
+            <p className={`${textFaint} text-[9px] font-black uppercase tracking-[0.4em]`}>
               &copy; 2026 Gura Neza Global. All rights reserved.
             </p>
             <div className="flex gap-6">
               {['Privacy Policy', 'Terms of Service', 'Cookie Policy'].map(item => (
-                <a key={item} href="#" className="text-white/20 hover:text-white/50 transition-colors text-[9px] font-black uppercase tracking-widest">
+                <a key={item} href="#" className={`${textFaint} hover:${textDim} transition-colors text-[9px] font-black uppercase tracking-widest`}>
                   {item}
                 </a>
               ))}

@@ -1,12 +1,12 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Star, ShoppingCart, ChevronLeft, ShieldCheck, Truck, RotateCcw, Heart, Share2, Plus, Minus, Package, ArrowRight } from 'lucide-react';
+import { Star, ShoppingCart, ChevronLeft, ShieldCheck, Truck, RotateCcw, Heart, Share2, Plus, Minus, Package, ArrowRight, Loader2 } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { useStore } from '../context/store';
 import ProductCard from '../components/ProductCard';
-
 import { productService, type Product } from '../services/productService';
+import { getStockInfo } from '../services/stockUtils';
 
 const ProductDetail: React.FC = () => {
   const { id } = useParams();
@@ -16,6 +16,14 @@ const ProductDetail: React.FC = () => {
   const [qty, setQty] = React.useState(1);
   const [activeTab, setActiveTab] = React.useState('description');
   const [loading, setLoading] = React.useState(true);
+
+  // Rating state
+  const [canRate, setCanRate] = React.useState(false);
+  const [hoverRating, setHoverRating] = React.useState(0);
+  const [selectedRating, setSelectedRating] = React.useState(0);
+  const [isRating, setIsRating] = React.useState(false);
+  const [ratingError, setRatingError] = React.useState('');
+  const [ratingSuccess, setRatingSuccess] = React.useState(false);
 
   React.useEffect(() => {
     const fetchProduct = async () => {
@@ -29,6 +37,11 @@ const ProductDetail: React.FC = () => {
           .filter(p => p.category === found.category && p.id !== found.id)
           .slice(0, 3);
         setRelated(relatedItems);
+        // Check if user can rate
+        try {
+          const eligible = await productService.canRate(Number(id));
+          setCanRate(eligible);
+        } catch { /* not authenticated or error — skip */ }
       } catch {
         setProduct(null);
       } finally {
@@ -38,6 +51,23 @@ const ProductDetail: React.FC = () => {
     fetchProduct();
     window.scrollTo(0, 0);
   }, [id]);
+
+  const handleRate = async (stars: number) => {
+    if (!stars || isRating) return;
+    setIsRating(true);
+    setRatingError('');
+    try {
+      const updated = await productService.rateProduct(Number(id), stars);
+      setProduct(updated);
+      setSelectedRating(stars);
+      setRatingSuccess(true);
+      setTimeout(() => setRatingSuccess(false), 3000);
+    } catch (err: any) {
+      setRatingError(err.response?.data?.message || 'Failed to submit rating');
+    } finally {
+      setIsRating(false);
+    }
+  };
 
   if (loading) return <div className="min-h-screen bg-[var(--bg-main)] flex items-center justify-center"><div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
   if (!product) return <div className="min-h-screen bg-[var(--bg-main)] flex items-center justify-center text-[var(--text-p)] font-black text-2xl italic">Product Not Found.</div>;
@@ -109,8 +139,9 @@ const ProductDetail: React.FC = () => {
                 <div className="flex items-center gap-4">
                     <span className="text-4xl sm:text-5xl font-mono-price font-black text-primary italic">${product.price.toFixed(2)}</span>
                 </div>
-                <div className="bg-primary/10 text-primary px-4 py-2 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] border border-primary/20">
-                   {product.stock > 0 ? `IN STOCK (${product.stock} Units)` : 'OUT OF STOCK'}
+                <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] border ${getStockInfo(product.stock).bg} ${getStockInfo(product.stock).text} ${getStockInfo(product.stock).border}`}>
+                   <div className={`w-2 h-2 rounded-full ${getStockInfo(product.stock).dot} animate-pulse`} />
+                   {getStockInfo(product.stock).label}
                 </div>
             </div>
 
@@ -167,11 +198,78 @@ const ProductDetail: React.FC = () => {
                     </button>
                 ))}
             </div>
-            <div className="bg-[var(--card-bg)] p-12 rounded-[3.5rem] border border-[var(--border-c)] transition-colors">
+            <div className="bg-[var(--card-bg)] p-8 sm:p-12 rounded-[3.5rem] border border-[var(--border-c)] transition-colors">
                 {activeTab === 'description' && (
                     <p className="text-[var(--text-s)] font-bold text-lg leading-loose italic">
                         {product.description || "No full description available for this item yet."}
                     </p>
+                )}
+                {activeTab === 'reviews' && (
+                    <div className="space-y-8">
+                        {/* Current rating summary */}
+                        <div className="flex items-center gap-6 pb-8 border-b border-[var(--border-c)]">
+                            <div className="text-center">
+                                <div className="text-5xl font-black text-primary italic">
+                                    {product.totalReviews > 0 ? (product.rating ?? 0).toFixed(1) : '—'}
+                                </div>
+                                <div className="flex gap-1 justify-center mt-2 text-gold">
+                                    {[1,2,3,4,5].map(i => (
+                                        <Star key={i} size={16}
+                                            fill={i <= Math.round(product.rating ?? 0) ? 'currentColor' : 'none'}
+                                            strokeWidth={i <= Math.round(product.rating ?? 0) ? 0 : 1.5} />
+                                    ))}
+                                </div>
+                                <p className="text-[10px] font-black text-[var(--text-s)] uppercase tracking-widest mt-1">
+                                    {product.totalReviews} review{product.totalReviews !== 1 ? 's' : ''}
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Rate this product — only for eligible users */}
+                        {canRate && (
+                            <div className="bg-[var(--bg-main)] p-6 rounded-2xl border border-[var(--border-c)]">
+                                <h4 className="text-sm font-black text-[var(--text-p)] italic mb-4">Rate this product</h4>
+                                <div className="flex gap-2 mb-4">
+                                    {[1,2,3,4,5].map(star => (
+                                        <button key={star}
+                                            onMouseEnter={() => setHoverRating(star)}
+                                            onMouseLeave={() => setHoverRating(0)}
+                                            onClick={() => handleRate(star)}
+                                            disabled={isRating}
+                                            className="transition-transform hover:scale-125 disabled:opacity-50"
+                                        >
+                                            <Star size={28}
+                                                className="text-gold transition-all"
+                                                fill={star <= (hoverRating || selectedRating) ? 'currentColor' : 'none'}
+                                                strokeWidth={star <= (hoverRating || selectedRating) ? 0 : 1.5}
+                                            />
+                                        </button>
+                                    ))}
+                                    {isRating && <Loader2 size={20} className="animate-spin text-primary ml-2 self-center" />}
+                                </div>
+                                <AnimatePresence>
+                                    {ratingSuccess && (
+                                        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                                            className="text-xs font-black text-primary">
+                                            ✓ Rating submitted successfully!
+                                        </motion.p>
+                                    )}
+                                    {ratingError && (
+                                        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                                            className="text-xs font-black text-red">
+                                            {ratingError}
+                                        </motion.p>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+                        )}
+
+                        {product.totalReviews === 0 && (
+                            <p className="text-[var(--text-s)] font-bold italic text-center py-8">
+                                No reviews yet. Be the first to rate this product!
+                            </p>
+                        )}
+                    </div>
                 )}
             </div>
         </section>

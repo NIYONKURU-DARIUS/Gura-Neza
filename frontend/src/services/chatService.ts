@@ -10,8 +10,27 @@ export interface ChatMessage {
   userName?: string;
   senderRole: 'USER' | 'ADMIN';
   content: string;
-  sentAt: string;
+  sentAt: string; // always normalized to ISO string by parseSentAt()
   readByAdmin?: boolean;
+}
+
+/**
+ * Jackson 3 (Spring Boot 4) serializes LocalDateTime as an array [y,m,d,h,min,s,nano]
+ * This normalizes both array and string formats to an ISO string.
+ */
+export function parseSentAt(raw: any): string {
+  if (!raw) return new Date().toISOString();
+  if (typeof raw === 'string') return raw;
+  if (Array.isArray(raw)) {
+    // [year, month(1-based), day, hour, minute, second, nano?]
+    const [y, mo, d, h = 0, min = 0, s = 0] = raw as number[];
+    return new Date(y, mo - 1, d, h, min, s).toISOString();
+  }
+  return String(raw);
+}
+
+function normalizeMessages(data: any[]): ChatMessage[] {
+  return data.map(m => ({ ...m, sentAt: parseSentAt(m.sentAt) }));
 }
 
 export interface ChatInboxItem {
@@ -31,7 +50,7 @@ class ChatService {
   private onMessageReceived: ((msg: ChatMessage) => void) | null = null;
 
   async connect(token: string, onMessage: (msg: ChatMessage) => void) {
-    this.onMessageReceived = onMessage;
+    this.onMessageReceived = (msg) => onMessage({ ...msg, sentAt: parseSentAt(msg.sentAt) });
     
     try {
       const SockJSCtor = await getSockJS() as any;
@@ -99,13 +118,18 @@ class ChatService {
     }
   }
 
-  adminReply(userId: number, content: string) {
+  async adminReply(userId: number, content: string): Promise<ChatMessage> {
+    // Always use REST — reliable regardless of WebSocket state
+    const response = await api.post(`/chat/admin/reply/${userId}`, { content });
+    const msg = { ...response.data, sentAt: parseSentAt(response.data.sentAt) };
+    // Also publish via WebSocket if connected (for real-time push to user)
     if (this.client?.connected) {
       this.client.publish({
         destination: '/app/chat.reply',
         body: JSON.stringify({ userId, content }),
       });
     }
+    return msg;
   }
 
   disconnect() {
@@ -114,10 +138,10 @@ class ChatService {
     }
   }
 
-  // REST Fallbacks
+  // REST methods — all normalize sentAt dates
   async getHistory(): Promise<ChatMessage[]> {
     const response = await api.get('/chat/history');
-    return response.data;
+    return normalizeMessages(response.data);
   }
 
   async getAdminInbox(): Promise<ChatInboxItem[]> {
@@ -127,7 +151,7 @@ class ChatService {
 
   async getThread(userId: number): Promise<ChatMessage[]> {
     const response = await api.get(`/chat/admin/thread/${userId}`);
-    return response.data;
+    return normalizeMessages(response.data);
   }
 }
 

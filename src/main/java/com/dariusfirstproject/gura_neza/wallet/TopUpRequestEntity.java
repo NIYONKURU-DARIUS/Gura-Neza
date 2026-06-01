@@ -1,21 +1,19 @@
-package com.dariusfirstproject.gura_neza.chat;
+package com.dariusfirstproject.gura_neza.wallet;
 
 import com.dariusfirstproject.gura_neza.user.User;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "chat_messages")
-@Getter
-@Setter
+@Table(name = "topup_requests")
+@Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-@EqualsAndHashCode(of = "id")
-@ToString(exclude = "user")
-public class ChatMessage {
+public class TopUpRequestEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -26,14 +24,12 @@ public class ChatMessage {
     private User user;
 
     @Column(nullable = false)
-    private String senderRole;
+    private BigDecimal amount;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
-    private String content;
-
-    @Column(nullable = false)
-    private LocalDateTime sentAt;
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private TopUpRequestStatus status = TopUpRequestStatus.PENDING;
 
     @Column(nullable = false)
-    private boolean readByAdmin = false;
+    private LocalDateTime createdAt;
 }
