@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useStore } from '../context/store';
 import { authService } from '../services/authService';
 import { userService } from '../services/userService';
+import { sayWelcomeBack } from '../services/speechService';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -38,7 +39,9 @@ const Login: React.FC = () => {
       });
       // Pre-load cart
       await fetchCart();
-      
+      // 🔊 Greet the user by name
+      sayWelcomeBack(profile.name);
+
       if (profile.role === 'ADMIN') {
         navigate('/admin');
       } else {

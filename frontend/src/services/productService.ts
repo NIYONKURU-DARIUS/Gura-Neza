@@ -74,6 +74,11 @@ export const productService = {
     return response.data;
   },
 
+  getMyRating: async (id: number): Promise<number> => {
+    const response = await api.get(`/products/${id}/my-rating`);
+    return response.data;
+  },
+
   createProduct: async (productData: any): Promise<Product> => {
     const response = await api.post('/products', productData);
     return response.data;

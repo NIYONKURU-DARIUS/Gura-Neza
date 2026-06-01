@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, Lock, User, UserPlus, ArrowLeft, Globe, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { authService } from '../services/authService';
+import { sayWelcomeNew } from '../services/speechService';
 
 const Register: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -48,6 +49,8 @@ const Register: React.FC = () => {
         password: formData.password
       });
       setSuccess(response.message || 'Registration successful! Please check your email to verify your account.');
+      // 🔊 Welcome the new user by name
+      sayWelcomeNew(formData.name);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Registration failed');
     } finally {

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { type Product } from '../services/productService';
 import { cartService } from '../services/cartService';
+import { sayAddedToCart } from '../services/speechService';
 
 interface CartItem {
   id: string; // This corresponds to the backend CartItem ID
@@ -85,12 +86,13 @@ export const useStore = create<GuraState>((set, get) => ({
 
   addToCart: async (product, quantity = 1) => {
     if (!get().token) {
-        // Fallback for guest or just notify
         return;
     }
     try {
         await cartService.addToCart(product.id, quantity);
         await get().fetchCart(); // Refresh from source of truth
+        // 🔊 Speak the confirmation after cart is updated
+        sayAddedToCart(product.name);
     } catch (err) {
         console.error("Failed to add to cart", err);
     }

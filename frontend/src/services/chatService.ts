@@ -12,6 +12,7 @@ export interface ChatMessage {
   content: string;
   sentAt: string; // always normalized to ISO string by parseSentAt()
   readByAdmin?: boolean;
+  edited?: boolean;
 }
 
 /**
@@ -136,6 +137,51 @@ class ChatService {
     if (this.client) {
       this.client.deactivate();
     }
+  }
+
+  isConnected(): boolean {
+    return this.client?.connected ?? false;
+  }
+
+  sendCallSignal(payload: Record<string, any>) {
+    if (this.client?.connected) {
+      const type = payload.type as string;
+      const destinations: Record<string, string> = {
+        CALL_INCOMING: '/app/call.initiate',
+        OFFER:         '/app/call.offer',
+        ANSWER:        '/app/call.answer',
+        ICE:           '/app/call.ice',
+        CALL_ENDED:    '/app/call.end',
+      };
+      const dest = destinations[type];
+      if (dest) {
+        this.client.publish({ destination: dest, body: JSON.stringify(payload) });
+      }
+    }
+  }
+
+  subscribeToCallSignal(userId: string, onSignal: (signal: any) => void) {
+    if (this.client?.connected) {
+      this.client.subscribe(`/topic/user/${userId}/call`, (message) => {
+        onSignal(JSON.parse(message.body));
+      });
+    }
+  }
+
+  async sendVoice(blob: Blob): Promise<ChatMessage> {
+    const form = new FormData();
+    form.append('file', blob, 'voice.webm');
+    const response = await api.post('/chat/voice', form, { headers: { 'Content-Type': 'multipart/form-data' } });
+    return { ...response.data, sentAt: parseSentAt(response.data.sentAt) };
+  }
+
+  async editMessage(messageId: number, content: string): Promise<ChatMessage> {
+    const response = await api.put(`/chat/message/${messageId}`, { content });
+    return { ...response.data, sentAt: parseSentAt(response.data.sentAt) };
+  }
+
+  async deleteMessage(messageId: number): Promise<void> {
+    await api.delete(`/chat/message/${messageId}`);
   }
 
   // REST methods — all normalize sentAt dates

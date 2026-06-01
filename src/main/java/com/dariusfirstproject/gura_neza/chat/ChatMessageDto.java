@@ -16,4 +16,7 @@ public class ChatMessageDto {
     private String content;
     private LocalDateTime sentAt;
     private boolean readByAdmin;
+    private boolean edited;
+    private String messageType; // "TEXT" | "VOICE"
+    private String voiceUrl;
 }

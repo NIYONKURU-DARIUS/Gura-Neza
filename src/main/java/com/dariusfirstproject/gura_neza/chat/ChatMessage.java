@@ -36,4 +36,15 @@ public class ChatMessage {
 
     @Column(nullable = false)
     private boolean readByAdmin = false;
+
+    @Column(nullable = false)
+    private boolean edited = false;
+
+    /** "TEXT" or "VOICE" */
+    @Column(nullable = false)
+    private String messageType = "TEXT";
+
+    /** URL path to the uploaded voice file (null for text messages) */
+    @Column
+    private String voiceUrl;
 }

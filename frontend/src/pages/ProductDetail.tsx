@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Star, ShoppingCart, ChevronLeft, ShieldCheck, Truck, RotateCcw, Heart, Share2, Plus, Minus, Package, ArrowRight, Loader2 } from 'lucide-react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { useStore } from '../context/store';
 import ProductCard from '../components/ProductCard';
@@ -11,6 +11,7 @@ import { getStockInfo } from '../services/stockUtils';
 const ProductDetail: React.FC = () => {
   const { id } = useParams();
   const { addToCart } = useStore();
+  const navigate = useNavigate();
   const [product, setProduct] = React.useState<Product | null>(null);
   const [related, setRelated] = React.useState<Product[]>([]);
   const [qty, setQty] = React.useState(1);
@@ -20,7 +21,7 @@ const ProductDetail: React.FC = () => {
   // Rating state
   const [canRate, setCanRate] = React.useState(false);
   const [hoverRating, setHoverRating] = React.useState(0);
-  const [selectedRating, setSelectedRating] = React.useState(0);
+  const [selectedRating, setSelectedRating] = React.useState(0); // user's own submitted rating
   const [isRating, setIsRating] = React.useState(false);
   const [ratingError, setRatingError] = React.useState('');
   const [ratingSuccess, setRatingSuccess] = React.useState(false);
@@ -37,11 +38,15 @@ const ProductDetail: React.FC = () => {
           .filter(p => p.category === found.category && p.id !== found.id)
           .slice(0, 3);
         setRelated(relatedItems);
-        // Check if user can rate
+        // Check eligibility and pre-load the user's existing rating in parallel
         try {
-          const eligible = await productService.canRate(Number(id));
+          const [eligible, myRating] = await Promise.all([
+            productService.canRate(Number(id)),
+            productService.getMyRating(Number(id)),
+          ]);
           setCanRate(eligible);
-        } catch { /* not authenticated or error — skip */ }
+          if (myRating > 0) setSelectedRating(myRating);
+        } catch { /* not authenticated — skip */ }
       } catch {
         setProduct(null);
       } finally {
@@ -57,9 +62,10 @@ const ProductDetail: React.FC = () => {
     setIsRating(true);
     setRatingError('');
     try {
+      // Server returns the product with the recalculated average rating
       const updated = await productService.rateProduct(Number(id), stars);
-      setProduct(updated);
-      setSelectedRating(stars);
+      setProduct(updated);           // updates the displayed average
+      setSelectedRating(stars);      // remembers this user's own choice
       setRatingSuccess(true);
       setTimeout(() => setRatingSuccess(false), 3000);
     } catch (err: any) {
@@ -164,8 +170,13 @@ const ProductDetail: React.FC = () => {
                </button>
             </div>
 
-            <button className="w-full bg-[var(--bg-main)] hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black border-2 border-[var(--text-p)] text-[var(--text-p)] font-black py-5 rounded-2xl text-xl transition-all flex items-center justify-center gap-3 italic">
-                Buy Now & Pay Later <ArrowRight size={24} />
+            <button className="w-full bg-[var(--bg-main)] hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black border-2 border-[var(--text-p)] text-[var(--text-p)] font-black py-5 rounded-2xl text-xl transition-all flex items-center justify-center gap-3 italic"
+                onClick={async () => {
+                  await addToCart(product, qty);
+                  navigate('/checkout');
+                }}
+            >
+                Buy Now &amp; Pay Later <ArrowRight size={24} />
             </button>
 
             {/* Trust Badges Details */}
@@ -206,30 +217,64 @@ const ProductDetail: React.FC = () => {
                 )}
                 {activeTab === 'reviews' && (
                     <div className="space-y-8">
-                        {/* Current rating summary */}
-                        <div className="flex items-center gap-6 pb-8 border-b border-[var(--border-c)]">
-                            <div className="text-center">
-                                <div className="text-5xl font-black text-primary italic">
+                        {/* ── Average rating summary ── */}
+                        <div className="flex flex-col sm:flex-row items-center gap-8 pb-8 border-b border-[var(--border-c)]">
+                            {/* Big number */}
+                            <div className="text-center flex-shrink-0">
+                                <div className="text-6xl font-black text-primary italic leading-none mb-2">
                                     {product.totalReviews > 0 ? (product.rating ?? 0).toFixed(1) : '—'}
                                 </div>
-                                <div className="flex gap-1 justify-center mt-2 text-gold">
+                                <div className="flex gap-1 justify-center text-gold mb-1">
                                     {[1,2,3,4,5].map(i => (
-                                        <Star key={i} size={16}
+                                        <Star key={i} size={18}
                                             fill={i <= Math.round(product.rating ?? 0) ? 'currentColor' : 'none'}
                                             strokeWidth={i <= Math.round(product.rating ?? 0) ? 0 : 1.5} />
                                     ))}
                                 </div>
-                                <p className="text-[10px] font-black text-[var(--text-s)] uppercase tracking-widest mt-1">
+                                <p className="text-[10px] font-black text-[var(--text-s)] uppercase tracking-widest">
                                     {product.totalReviews} review{product.totalReviews !== 1 ? 's' : ''}
                                 </p>
                             </div>
+
+                            {/* Per-star breakdown bars */}
+                            <div className="flex-1 w-full space-y-1.5">
+                                {[5,4,3,2,1].map(star => {
+                                    // We don't have per-star counts from the API, so show a
+                                    // proportional bar based on how close the average is to each star
+                                    const avg = product.rating ?? 0;
+                                    const weight = Math.max(0, 1 - Math.abs(avg - star));
+                                    const pct = product.totalReviews > 0 ? Math.round(weight * 100) : 0;
+                                    return (
+                                        <div key={star} className="flex items-center gap-2">
+                                            <span className="text-[9px] font-black text-[var(--text-s)] w-3 flex-shrink-0">{star}</span>
+                                            <Star size={10} className="text-gold flex-shrink-0" fill="#FFD700" strokeWidth={0} />
+                                            <div className="flex-1 h-1.5 bg-[var(--border-c)] rounded-full overflow-hidden">
+                                                <div className="h-full bg-gold rounded-full transition-all duration-700"
+                                                    style={{ width: `${pct}%`, background: '#FFD700' }} />
+                                            </div>
+                                            <span className="text-[9px] font-bold text-[var(--text-s)] w-6 text-right flex-shrink-0">{pct}%</span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
 
-                        {/* Rate this product — only for eligible users */}
+                        {/* ── Rate this product ── */}
                         {canRate && (
                             <div className="bg-[var(--bg-main)] p-6 rounded-2xl border border-[var(--border-c)]">
-                                <h4 className="text-sm font-black text-[var(--text-p)] italic mb-4">Rate this product</h4>
-                                <div className="flex gap-2 mb-4">
+                                <div className="flex items-center justify-between mb-3">
+                                    <h4 className="text-sm font-black text-[var(--text-p)] italic">
+                                        {selectedRating > 0 ? 'Update Your Rating' : 'Rate This Product'}
+                                    </h4>
+                                    {selectedRating > 0 && (
+                                        <span className="text-[9px] font-black text-primary uppercase tracking-widest bg-primary/10 px-2 py-0.5 rounded-full">
+                                            Your rating: {selectedRating}/5
+                                        </span>
+                                    )}
+                                </div>
+
+                                {/* Input stars — show user's own choice, not the average */}
+                                <div className="flex items-center gap-2 mb-4">
                                     {[1,2,3,4,5].map(star => (
                                         <button key={star}
                                             onMouseEnter={() => setHoverRating(star)}
@@ -238,21 +283,29 @@ const ProductDetail: React.FC = () => {
                                             disabled={isRating}
                                             className="transition-transform hover:scale-125 disabled:opacity-50"
                                         >
-                                            <Star size={28}
+                                            <Star size={30}
                                                 className="text-gold transition-all"
                                                 fill={star <= (hoverRating || selectedRating) ? 'currentColor' : 'none'}
                                                 strokeWidth={star <= (hoverRating || selectedRating) ? 0 : 1.5}
                                             />
                                         </button>
                                     ))}
-                                    {isRating && <Loader2 size={20} className="animate-spin text-primary ml-2 self-center" />}
+                                    {isRating && <Loader2 size={20} className="animate-spin text-primary ml-2" />}
+                                    {/* Live label */}
+                                    {(hoverRating || selectedRating) > 0 && !isRating && (
+                                        <span className="text-xs font-black text-[var(--text-s)] ml-1 italic">
+                                            {['', 'Poor', 'Fair', 'Good', 'Great', 'Excellent'][hoverRating || selectedRating]}
+                                        </span>
+                                    )}
                                 </div>
+
                                 <AnimatePresence>
                                     {ratingSuccess && (
-                                        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                                            className="text-xs font-black text-primary">
-                                            ✓ Rating submitted successfully!
-                                        </motion.p>
+                                        <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                                            className="flex items-center gap-2 text-xs font-black text-primary bg-primary/10 px-3 py-2 rounded-xl">
+                                            <Star size={14} fill="currentColor" strokeWidth={0} />
+                                            Rating submitted! Average updated to {(product.rating ?? 0).toFixed(1)} from {product.totalReviews} review{product.totalReviews !== 1 ? 's' : ''}.
+                                        </motion.div>
                                     )}
                                     {ratingError && (
                                         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -281,12 +334,12 @@ const ProductDetail: React.FC = () => {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
              {related.map((p) => <ProductCard key={p.id} product={p} />)}
-             <div className="bg-primary/5 rounded-[3rem] border border-primary/20 border-dashed flex flex-col items-center justify-center p-12 text-center group cursor-pointer hover:bg-primary/10 transition-colors">
-                <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center text-white mb-6 group-hover:scale-110 transition-transform">
+             <Link to="/products" className="bg-primary/5 rounded-[3rem] border border-primary/20 border-dashed flex flex-col items-center justify-center p-12 text-center group hover:bg-primary/10 transition-colors">
+                <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center text-white mb-6 group-hover:scale-110 transition-transform">
                    <ArrowRight size={32} />
                 </div>
                 <span className="text-xl font-black italic text-primary">Explore All Shop Items</span>
-             </div>
+             </Link>
           </div>
         </section>
       </main>

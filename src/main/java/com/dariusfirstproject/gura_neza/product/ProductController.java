@@ -77,4 +77,9 @@ public class ProductController {
     public ResponseEntity<Boolean> canRate(@PathVariable Long id) {
         return ResponseEntity.ok(productService.hasUserPurchased(id));
     }
+
+    @GetMapping("/{id}/my-rating")
+    public ResponseEntity<Integer> getMyRating(@PathVariable Long id) {
+        return ResponseEntity.ok(productService.getUserRating(id));
+    }
 }

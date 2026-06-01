@@ -184,6 +184,15 @@ public class ProductService {
                 .anyMatch(item -> item.getProduct().getId().equals(productId));
     }
 
+    /** Returns the current user's own rating for a product (0 if not rated yet). */
+    public int getUserRating(Long productId) {
+        User user = getCurrentUser();
+        if (user == null) return 0;
+        return productRatingRepository.findByProductIdAndUserId(productId, user.getId())
+                .map(ProductRating::getRating)
+                .orElse(0);
+    }
+
     /**
      * Toggles a like for the current user on the given product.
      * - If the user has NOT liked it: adds a like (likesCount++)

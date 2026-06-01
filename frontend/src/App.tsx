@@ -14,6 +14,7 @@ import Dashboard from './pages/Dashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import Settings from './pages/Settings';
 import ChatWidget from './components/ChatWidget';
+import SpeakingIndicator from './components/SpeakingIndicator';
 import LoadingScreen from './components/LoadingScreen';
 import { AnimatePresence } from 'framer-motion';
 import { useStore } from './context/store';
@@ -113,6 +114,7 @@ function App() {
   return (
     <>
       <LoadingScreen isLoading={isLoading} />
+      <SpeakingIndicator />
       <Router>
         <AppRoutes />
       </Router>

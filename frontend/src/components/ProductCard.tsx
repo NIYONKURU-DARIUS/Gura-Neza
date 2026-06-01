@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { useStore } from '../context/store';
 import { productService, type Product } from '../services/productService';
 import { getStockInfo } from '../services/stockUtils';
+import { playLikeSound } from '../services/speechService';
 
 interface ProductCardProps {
   product: Product;
@@ -29,6 +30,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product: initialProduct }) =>
         likedByCurrentUser: !wasLiked,
         likesCount: wasLiked ? Math.max(0, prev.likesCount - 1) : prev.likesCount + 1,
       }));
+
+      // Play sound only when liking (not unliking)
+      if (!wasLiked) playLikeSound();
 
       // Server call — response is authoritative
       const updated = await productService.likeProduct(product.id);

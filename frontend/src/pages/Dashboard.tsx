@@ -48,31 +48,45 @@ const Dashboard: React.FC = () => {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="card"
+            className="rounded-[2rem] overflow-hidden shadow-xl shadow-primary/20"
             style={{
-              background: 'linear-gradient(135deg, var(--primary) 0%, #065f46 100%)',
-              color: 'white',
+              background: 'linear-gradient(135deg, #1b5e20 0%, #2e7d32 50%, #388e3c 100%)',
               padding: '2.5rem',
-              border: 'none',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
               minHeight: '220px',
-              borderRadius: '2rem',
             }}
           >
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
-                <span style={{ fontSize: '1rem', opacity: 0.9, fontWeight: 700 }}>Gura Wallet Balance</span>
-                <Wallet size={28} opacity={0.5} />
+                <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.8)', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                  Gura Wallet Balance
+                </span>
+                <Wallet size={26} color="rgba(255,255,255,0.5)" />
               </div>
-              <h2 style={{ fontSize: '3rem', fontWeight: 800, marginBottom: '0.5rem' }}>
+              <h2 style={{ fontSize: '2.8rem', fontWeight: 900, color: '#ffffff', marginBottom: '0.25rem', fontStyle: 'italic', letterSpacing: '-1px' }}>
                 ${(user?.walletBalance ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </h2>
+              <p style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.55)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em' }}>
+                Available balance
+              </p>
             </div>
-            <div style={{ display: 'flex', gap: '1rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>
               <Link to="/wallet">
-                <button className="btn" style={{ backgroundColor: 'white', color: 'var(--primary)', padding: '0.6rem 1.25rem', borderRadius: '0.75rem', fontWeight: 800 }}>
+                <button style={{
+                  backgroundColor: 'rgba(255,255,255,0.15)',
+                  color: '#ffffff',
+                  border: '1px solid rgba(255,255,255,0.25)',
+                  padding: '0.6rem 1.4rem',
+                  borderRadius: '50px',
+                  fontWeight: 800,
+                  fontSize: '0.65rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.1em',
+                  cursor: 'pointer',
+                  backdropFilter: 'blur(8px)',
+                }}>
                   View Wallet
                 </button>
               </Link>

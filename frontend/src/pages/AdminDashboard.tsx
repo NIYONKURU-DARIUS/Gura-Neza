@@ -4,8 +4,7 @@ import {
   Users, ShoppingCart, Package, BarChart3, MessageSquare,
   LogOut, Check, Clock, Loader2, Plus, X, DollarSign,
   Send, Truck, Ban, Eye, Edit2, AlertTriangle, TrendingUp,
-  Star, Heart, Menu, ChevronRight, Search, Wallet,
-  ThumbsUp, Award
+  Star, Heart, Menu, Search, Wallet
 } from 'lucide-react';
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
@@ -297,9 +296,9 @@ const AdminDashboard: React.FC = () => {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setSidebarOpen(false)}
               className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 lg:hidden" />
-            <motion.aside initial={{ x: -280 }} animate={{ x: 0 }} exit={{ x: -280 }}
+            <motion.aside initial={{ x: -300 }} animate={{ x: 0 }} exit={{ x: -300 }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="fixed left-0 top-0 h-full w-64 bg-[var(--card-bg)] border-r border-[var(--border-c)] flex flex-col py-6 px-4 z-40 lg:hidden shadow-2xl">
+              className="fixed left-0 top-0 h-full w-72 bg-[var(--card-bg)] border-r border-[var(--border-c)] flex flex-col py-6 px-4 z-40 lg:hidden shadow-2xl">
               <SidebarContent />
             </motion.aside>
           </>
@@ -307,22 +306,27 @@ const AdminDashboard: React.FC = () => {
       </AnimatePresence>
 
       {/* ── DESKTOP SIDEBAR ────────────────────────────────────────── */}
-      <aside className={`hidden lg:flex flex-col py-6 px-3 fixed h-full z-20 bg-[var(--card-bg)] border-r border-[var(--border-c)] transition-all duration-300 overflow-hidden ${sidebarCollapsed ? 'w-[68px]' : 'w-64'}`}>
+      <aside className={`hidden lg:flex flex-col py-6 px-4 fixed h-full z-20 bg-[var(--card-bg)] border-r border-[var(--border-c)] transition-all duration-300 ${sidebarCollapsed ? 'w-[76px]' : 'w-72'}`}>
         <SidebarContent />
-        <button onClick={() => setSidebarCollapsed(c => !c)}
-          className="absolute -right-3 top-20 w-6 h-6 bg-[var(--card-bg)] border border-[var(--border-c)] rounded-full flex items-center justify-center text-[var(--text-s)] hover:text-primary hover:border-primary transition-all shadow-sm">
-          <ChevronRight size={12} className={`transition-transform ${sidebarCollapsed ? '' : 'rotate-180'}`} />
-        </button>
       </aside>
 
       {/* ── MAIN CONTENT ───────────────────────────────────────────── */}
-      <main className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-[68px]' : 'lg:ml-64'} min-h-screen`}>
+      <main className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-[76px]' : 'lg:ml-72'} min-h-screen`}>
 
         {/* Top bar */}
         <header className="sticky top-0 z-10 bg-[var(--card-bg)]/80 backdrop-blur-xl border-b border-[var(--border-c)] px-4 sm:px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
+            {/* Mobile open */}
             <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 rounded-xl text-[var(--text-s)] hover:bg-primary/5 hover:text-primary transition-all">
               <Menu size={20} />
+            </button>
+            {/* Desktop collapse toggle — always fully visible in the top bar */}
+            <button
+              onClick={() => setSidebarCollapsed(c => !c)}
+              className="hidden lg:flex items-center justify-center w-8 h-8 rounded-xl bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all"
+              title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              <Menu size={16} />
             </button>
             <h1 className="text-sm font-black text-[var(--text-p)] italic tracking-tighter uppercase">
               {navItems.find(n => n.id === activeSection)?.name ?? 'Dashboard'}
@@ -504,29 +508,36 @@ const AdminDashboard: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Recent orders table */}
+                {/* Recent orders — card list */}
                 <div className="bg-[var(--card-bg)] rounded-2xl border border-[var(--border-c)] overflow-hidden shadow-sm">
                   <div className="p-4 border-b border-[var(--border-c)] flex justify-between items-center">
                     <h3 className="font-black italic uppercase text-xs">Recent Orders</h3>
                     <button onClick={() => setActiveSection('ord')} className="text-[9px] font-black text-primary uppercase tracking-widest hover:underline">View All →</button>
                   </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left min-w-[480px]">
-                      <thead className="bg-primary/5 text-[8px] font-black uppercase tracking-widest">
-                        <tr><th className="p-3">Order</th><th className="p-3">Customer</th><th className="p-3">Amount</th><th className="p-3">Status</th><th className="p-3">Date</th></tr>
-                      </thead>
-                      <tbody className="divide-y divide-[var(--border-c)]">
-                        {orders.slice(0, 6).map(o => (
-                          <tr key={o.id} className="hover:bg-primary/5 transition-colors cursor-pointer" onClick={() => setSelectedOrder(o)}>
-                            <td className="p-3 font-black text-xs italic">#{o.id}</td>
-                            <td className="p-3 text-xs font-bold text-[var(--text-s)] max-w-[120px] truncate">{o.userName ?? '—'}</td>
-                            <td className="p-3 font-black text-primary text-xs">${Number(o.totalPrice).toFixed(2)}</td>
-                            <td className="p-3"><span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase border ${STATUS_STYLES[o.status]}`}>{o.status}</span></td>
-                            <td className="p-3 text-[10px] text-[var(--text-s)] font-bold">{new Date(o.createdAt).toLocaleDateString()}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <div className="divide-y divide-[var(--border-c)]">
+                    {orders.slice(0, 6).map(o => (
+                      <div key={o.id}
+                        className="p-4 flex items-center gap-3 hover:bg-primary/5 transition-colors cursor-pointer"
+                        onClick={() => setSelectedOrder(o)}>
+                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 border text-xs ${STATUS_STYLES[o.status]}`}>
+                          {o.status === 'PENDING'   && <Clock size={13} />}
+                          {o.status === 'CONFIRMED' && <Check size={13} />}
+                          {o.status === 'DELIVERED' && <Truck size={13} />}
+                          {o.status === 'CANCELLED' && <Ban size={13} />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-black text-[var(--text-p)] italic truncate">#{o.id} — {o.userName ?? '—'}</p>
+                          <p className="text-[9px] text-[var(--text-s)] font-bold">{new Date(o.createdAt).toLocaleDateString()}</p>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <span className="font-black text-primary text-xs">${Number(o.totalPrice).toFixed(2)}</span>
+                          <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border hidden sm:inline ${STATUS_STYLES[o.status]}`}>{o.status}</span>
+                        </div>
+                      </div>
+                    ))}
+                    {orders.length === 0 && (
+                      <div className="p-8 text-center opacity-30"><p className="text-xs font-black uppercase">No orders yet</p></div>
+                    )}
                   </div>
                 </div>
               </motion.div>
@@ -591,50 +602,88 @@ const AdminDashboard: React.FC = () => {
             {/* ── ORDERS ────────────────────────────────────────────── */}
             {activeSection === 'ord' && (
               <motion.div key="ord" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+                {/* Filter pills */}
                 <div className="flex gap-2 flex-wrap">
                   {(['ALL', 'PENDING', 'CONFIRMED', 'DELIVERED', 'CANCELLED'] as const).map(f => (
                     <button key={f} onClick={() => setOrderFilter(f)}
-                      className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${orderFilter === f ? 'bg-primary text-white shadow-md' : 'bg-[var(--card-bg)] text-[var(--text-s)] border border-[var(--border-c)] hover:border-primary/40'}`}>
+                      className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${orderFilter === f ? 'bg-primary text-white shadow-md' : 'bg-[var(--card-bg)] text-[var(--text-s)] border border-[var(--border-c)] hover:border-primary/40'}`}>
                       {f} {f !== 'ALL' && `(${orders.filter(o => o.status === f).length})`}
                     </button>
                   ))}
                 </div>
-                <div className="bg-[var(--card-bg)] rounded-2xl border border-[var(--border-c)] overflow-hidden shadow-sm">
-                  <div className="divide-y divide-[var(--border-c)]">
-                    {filteredOrders.length === 0 ? (
-                      <div className="p-12 text-center opacity-30"><p className="text-xs font-black uppercase">No orders found</p></div>
-                    ) : filteredOrders.map(o => (
-                      <div key={o.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-primary/5 transition-colors">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 border ${STATUS_STYLES[o.status]}`}>
-                            {o.status === 'PENDING' && <Clock size={15} />}
-                            {o.status === 'CONFIRMED' && <Check size={15} />}
-                            {o.status === 'DELIVERED' && <Truck size={15} />}
-                            {o.status === 'CANCELLED' && <Ban size={15} />}
+
+                {filteredOrders.length === 0 ? (
+                  <div className="py-20 text-center opacity-30"><ShoppingCart size={48} className="mx-auto mb-3" /><p className="text-xs font-black uppercase">No orders found</p></div>
+                ) : (
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                    {filteredOrders.map((o, i) => (
+                      <motion.div key={o.id}
+                        initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                        className="bg-[var(--card-bg)] rounded-2xl border border-[var(--border-c)] overflow-hidden shadow-sm hover:shadow-md transition-all group">
+                        {/* Coloured top strip by status */}
+                        <div className={`h-1 w-full ${
+                          o.status === 'PENDING' ? 'bg-amber' :
+                          o.status === 'CONFIRMED' ? 'bg-blue-500' :
+                          o.status === 'DELIVERED' ? 'bg-primary' : 'bg-red'
+                        }`} />
+                        <div className="p-4">
+                          {/* Header row */}
+                          <div className="flex items-start justify-between mb-3">
+                            <div>
+                              <p className="text-sm font-black text-[var(--text-p)] italic">Order #{o.id}</p>
+                              <p className="text-[10px] text-[var(--text-s)] font-bold mt-0.5">{o.userName ?? '—'} · {new Date(o.createdAt).toLocaleDateString()}</p>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full border ${STATUS_STYLES[o.status]}`}>{o.status}</span>
+                              {o.paymentMethod === 'PAY_LATER' && <span className="text-[8px] font-black uppercase px-2 py-0.5 rounded-full bg-amber/10 text-amber border border-amber/20">Pay Later</span>}
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-xs font-black text-[var(--text-p)] italic">Order #{o.id} — {o.userName ?? '—'}</p>
-                            <div className="flex items-center gap-2 mt-0.5">
-                              <p className="text-[10px] text-[var(--text-s)] font-bold">{new Date(o.createdAt).toLocaleDateString()}</p>
-                              <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border ${STATUS_STYLES[o.status]}`}>{o.status}</span>
-                              {o.paymentMethod === 'PAY_LATER' && <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full bg-amber/10 text-amber border border-amber/20">Pay Later</span>}
+
+                          {/* Items preview */}
+                          <div className="flex flex-wrap gap-1.5 mb-3">
+                            {o.items.slice(0, 3).map(item => (
+                              <span key={item.id} className="text-[9px] font-bold bg-[var(--bg-main)] text-[var(--text-s)] px-2 py-1 rounded-full border border-[var(--border-c)] truncate max-w-[120px]">
+                                {item.productName} ×{item.quantity}
+                              </span>
+                            ))}
+                            {o.items.length > 3 && (
+                              <span className="text-[9px] font-bold bg-primary/10 text-primary px-2 py-1 rounded-full">+{o.items.length - 3} more</span>
+                            )}
+                          </div>
+
+                          {/* Footer row */}
+                          <div className="flex items-center justify-between pt-3 border-t border-[var(--border-c)]">
+                            <span className="font-black text-primary text-base italic">${Number(o.totalPrice).toFixed(2)}</span>
+                            <div className="flex items-center gap-1.5">
+                              <button onClick={() => setSelectedOrder(o)}
+                                className="p-1.5 text-[var(--text-s)] hover:text-primary hover:bg-primary/10 rounded-lg transition-colors">
+                                <Eye size={14} />
+                              </button>
+                              {o.status === 'PENDING' && (
+                                <button onClick={() => doAction('confirm', () => orderService.confirmOrder(o.id))}
+                                  className="btn-primary py-1 px-2.5 rounded-full text-[8px] flex items-center gap-1">
+                                  <Check size={10} /> Confirm
+                                </button>
+                              )}
+                              {o.status === 'CONFIRMED' && (
+                                <button onClick={() => doAction('deliver', () => orderService.deliverOrder(o.id))}
+                                  className="bg-blue-500 text-white py-1 px-2.5 rounded-full text-[8px] font-black flex items-center gap-1 hover:bg-blue-600 transition-colors">
+                                  <Truck size={10} /> Deliver
+                                </button>
+                              )}
+                              {(o.status === 'PENDING' || o.status === 'CONFIRMED') && (
+                                <button onClick={() => { if (confirm(`Cancel Order #${o.id}?`)) doAction('cancel', () => orderService.cancelOrder(o.id)); }}
+                                  className="bg-red/10 text-red py-1 px-2.5 rounded-full text-[8px] font-black flex items-center gap-1 hover:bg-red/20 transition-colors border border-red/20">
+                                  <Ban size={10} /> Cancel
+                                </button>
+                              )}
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-black text-primary text-sm">${Number(o.totalPrice).toFixed(2)}</span>
-                          <button onClick={() => setSelectedOrder(o)} className="p-1.5 text-[var(--text-s)] hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"><Eye size={14} /></button>
-                          {o.status === 'PENDING' && <button onClick={() => doAction('confirm', () => orderService.confirmOrder(o.id))} className="btn-primary py-1 px-2.5 rounded-lg text-[8px] flex items-center gap-1"><Check size={11} /> Confirm</button>}
-                          {o.status === 'CONFIRMED' && <button onClick={() => doAction('deliver', () => orderService.deliverOrder(o.id))} className="bg-blue-500 text-white py-1 px-2.5 rounded-lg text-[8px] font-black flex items-center gap-1 hover:bg-blue-600 transition-colors"><Truck size={11} /> Deliver</button>}
-                          {(o.status === 'PENDING' || o.status === 'CONFIRMED') && (
-                            <button onClick={() => { if (confirm(`Cancel Order #${o.id}?`)) doAction('cancel', () => orderService.cancelOrder(o.id)); }}
-                              className="bg-red/10 text-red py-1 px-2.5 rounded-lg text-[8px] font-black flex items-center gap-1 hover:bg-red/20 transition-colors border border-red/20"><Ban size={11} /> Cancel</button>
-                          )}
-                        </div>
-                      </div>
+                      </motion.div>
                     ))}
                   </div>
-                </div>
+                )}
               </motion.div>
             )}
 
@@ -645,32 +694,53 @@ const AdminDashboard: React.FC = () => {
                   <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-s)]" />
                   <input value={userSearch} onChange={e => setUserSearch(e.target.value)} placeholder="Search users..." className="input-field pl-9 py-2.5 text-xs w-full" />
                 </div>
-                <div className="bg-[var(--card-bg)] rounded-2xl border border-[var(--border-c)] overflow-hidden shadow-sm">
-                  <div className="p-4 border-b border-[var(--border-c)]">
-                    <h3 className="font-black italic uppercase text-xs">Users ({filteredUsers.length})</h3>
-                  </div>
-                  <div className="divide-y divide-[var(--border-c)]">
-                    {filteredUsers.map(u => (
-                      <div key={u.id} className="p-4 flex items-center justify-between gap-4 hover:bg-primary/5 transition-colors">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary font-black italic text-sm flex-shrink-0">{u.name[0]}</div>
+
+                {filteredUsers.length === 0 ? (
+                  <div className="py-20 text-center opacity-30"><Users size={48} className="mx-auto mb-3" /><p className="text-xs font-black uppercase">No users found</p></div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {filteredUsers.map((u, i) => (
+                      <motion.div key={u.id}
+                        initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                        className="bg-[var(--card-bg)] rounded-2xl border border-[var(--border-c)] p-5 shadow-sm hover:shadow-md transition-all">
+                        {/* Avatar + name */}
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center text-primary font-black text-lg italic flex-shrink-0">
+                            {u.name[0]}
+                          </div>
                           <div className="min-w-0">
-                            <p className="text-xs font-black text-[var(--text-p)] truncate">{u.name}</p>
+                            <p className="text-sm font-black text-[var(--text-p)] truncate">{u.name}</p>
                             <p className="text-[10px] text-[var(--text-s)] font-bold truncate">{u.email}</p>
                           </div>
+                          <span className={`ml-auto text-[8px] font-black uppercase px-2 py-0.5 rounded-full border flex-shrink-0 ${u.role === 'ADMIN' ? 'bg-primary/10 text-primary border-primary/20' : 'bg-[var(--bg-main)] text-[var(--text-s)] border-[var(--border-c)]'}`}>
+                            {u.role}
+                          </span>
                         </div>
-                        <div className="flex items-center gap-3 flex-shrink-0">
+
+                        {/* Wallet balance */}
+                        <div className="bg-[var(--bg-main)] rounded-xl p-3 mb-4 flex items-center justify-between">
+                          <div className="flex items-center gap-2 text-[var(--text-s)]">
+                            <Wallet size={14} />
+                            <span className="text-[9px] font-black uppercase tracking-widest">Wallet</span>
+                          </div>
                           <span className="font-black text-primary text-sm">${Number(u.walletBalance).toFixed(2)}</span>
-                          <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full border ${u.role === 'ADMIN' ? 'bg-primary/10 text-primary border-primary/20' : 'bg-[var(--bg-main)] text-[var(--text-s)] border-[var(--border-c)]'}`}>{u.role}</span>
-                          {u.role === 'USER' && (
-                            <button onClick={() => { const a = prompt(`Top up wallet for ${u.name}:`); if (a && !isNaN(Number(a))) doAction('topup', () => walletService.topUp(u.id, parseFloat(a))); }}
-                              className="btn-primary py-1 px-2.5 rounded-lg text-[8px]">Top Up</button>
-                          )}
                         </div>
-                      </div>
+
+                        {/* Action */}
+                        {u.role === 'USER' && (
+                          <button
+                            onClick={() => {
+                              const a = prompt(`Top up wallet for ${u.name}:`);
+                              if (a && !isNaN(Number(a))) doAction('topup', () => walletService.topUp(u.id, parseFloat(a)));
+                            }}
+                            className="w-full btn-primary py-2 rounded-full text-[9px] flex items-center justify-center gap-1.5">
+                            <Plus size={12} /> Top Up Wallet
+                          </button>
+                        )}
+                      </motion.div>
                     ))}
                   </div>
-                </div>
+                )}
               </motion.div>
             )}
 
@@ -687,70 +757,82 @@ const AdminDashboard: React.FC = () => {
                 </div>
 
                 {likesTab === 'likes' && (
-                  <div className="bg-[var(--card-bg)] rounded-2xl border border-[var(--border-c)] overflow-hidden shadow-sm">
-                    <div className="p-4 border-b border-[var(--border-c)]">
-                      <h3 className="font-black italic uppercase text-xs">Products by Likes</h3>
-                    </div>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left min-w-[400px]">
-                        <thead className="bg-primary/5 text-[8px] font-black uppercase tracking-widest">
-                          <tr><th className="p-3">Product</th><th className="p-3">Category</th><th className="p-3">Likes</th><th className="p-3">Like Bar</th></tr>
-                        </thead>
-                        <tbody className="divide-y divide-[var(--border-c)]">
-                          {[...products].sort((a, b) => (b.likesCount ?? 0) - (a.likesCount ?? 0)).map(p => {
-                            const maxLikes = Math.max(1, ...products.map(x => x.likesCount ?? 0));
-                            return (
-                              <tr key={p.id} className="hover:bg-primary/5 transition-colors">
-                                <td className="p-3 font-black text-xs max-w-[160px] truncate">{p.name}</td>
-                                <td className="p-3 text-[10px] text-[var(--text-s)] font-bold">{p.category}</td>
-                                <td className="p-3">
-                                  <span className="flex items-center gap-1 font-black text-red text-xs"><Heart size={12} fill="#C62828" /> {p.likesCount ?? 0}</span>
-                                </td>
-                                <td className="p-3 w-40">
-                                  <div className="h-2 bg-[var(--border-c)] rounded-full overflow-hidden">
-                                    <div className="h-full bg-red rounded-full transition-all" style={{ width: `${((p.likesCount ?? 0) / maxLikes) * 100}%` }} />
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
+                  <div className="space-y-3">
+                    {[...products].sort((a, b) => (b.likesCount ?? 0) - (a.likesCount ?? 0)).map((p, i) => {
+                      const maxLikes = Math.max(1, ...products.map(x => x.likesCount ?? 0));
+                      const pct = Math.round(((p.likesCount ?? 0) / maxLikes) * 100);
+                      return (
+                        <div key={p.id} className="bg-[var(--card-bg)] rounded-2xl border border-[var(--border-c)] p-4 flex items-center gap-4 hover:shadow-md transition-shadow">
+                          {/* Rank */}
+                          <span className="text-[10px] font-black text-[var(--text-s)] w-5 flex-shrink-0 text-center">{i + 1}</span>
+                          {/* Thumbnail */}
+                          <div className="w-10 h-10 rounded-xl bg-[var(--bg-main)] border border-[var(--border-c)] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                            {p.imageUrl
+                              ? <img src={p.imageUrl} alt={p.name} className="w-full h-full object-contain mix-blend-multiply" />
+                              : <Package size={16} className="text-[var(--text-s)] opacity-30" />}
+                          </div>
+                          {/* Info */}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-black text-[var(--text-p)] truncate">{p.name}</p>
+                            <p className="text-[9px] font-bold text-[var(--text-s)] uppercase">{p.category}</p>
+                            <div className="mt-1.5 h-1.5 bg-[var(--border-c)] rounded-full overflow-hidden">
+                              <div className="h-full bg-red rounded-full transition-all" style={{ width: `${pct}%` }} />
+                            </div>
+                          </div>
+                          {/* Count */}
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            <Heart size={13} className="text-red" fill="#C62828" />
+                            <span className="font-black text-sm text-[var(--text-p)]">{p.likesCount ?? 0}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {products.length === 0 && (
+                      <div className="text-center py-12 opacity-30"><Heart size={40} className="mx-auto mb-2" /><p className="text-xs font-black uppercase">No data yet</p></div>
+                    )}
                   </div>
                 )}
 
                 {likesTab === 'ratings' && (
-                  <div className="bg-[var(--card-bg)] rounded-2xl border border-[var(--border-c)] overflow-hidden shadow-sm">
-                    <div className="p-4 border-b border-[var(--border-c)]">
-                      <h3 className="font-black italic uppercase text-xs">Products by Rating</h3>
-                    </div>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left min-w-[480px]">
-                        <thead className="bg-primary/5 text-[8px] font-black uppercase tracking-widest">
-                          <tr><th className="p-3">Product</th><th className="p-3">Avg Rating</th><th className="p-3">Reviews</th><th className="p-3">Rating Bar</th></tr>
-                        </thead>
-                        <tbody className="divide-y divide-[var(--border-c)]">
-                          {[...products].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0)).map(p => (
-                            <tr key={p.id} className="hover:bg-primary/5 transition-colors">
-                              <td className="p-3 font-black text-xs max-w-[160px] truncate">{p.name}</td>
-                              <td className="p-3">
-                                <div className="flex items-center gap-1">
-                                  {[1,2,3,4,5].map(s => <Star key={s} size={11} fill={s <= Math.round(p.rating ?? 0) ? '#FFD700' : 'none'} stroke="#FFD700" strokeWidth={1.5} />)}
-                                  <span className="text-[10px] font-black text-[var(--text-s)] ml-1">{(p.rating ?? 0).toFixed(1)}</span>
-                                </div>
-                              </td>
-                              <td className="p-3 text-xs font-black text-[var(--text-s)]">{p.totalReviews ?? 0}</td>
-                              <td className="p-3 w-40">
-                                <div className="h-2 bg-[var(--border-c)] rounded-full overflow-hidden">
-                                  <div className="h-full bg-gold rounded-full transition-all" style={{ width: `${((p.rating ?? 0) / 5) * 100}%`, background: '#FFD700' }} />
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                  <div className="space-y-3">
+                    {[...products].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0)).map((p, i) => {
+                      const pct = Math.round(((p.rating ?? 0) / 5) * 100);
+                      return (
+                        <div key={p.id} className="bg-[var(--card-bg)] rounded-2xl border border-[var(--border-c)] p-4 flex items-center gap-4 hover:shadow-md transition-shadow">
+                          {/* Rank */}
+                          <span className="text-[10px] font-black text-[var(--text-s)] w-5 flex-shrink-0 text-center">{i + 1}</span>
+                          {/* Thumbnail */}
+                          <div className="w-10 h-10 rounded-xl bg-[var(--bg-main)] border border-[var(--border-c)] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                            {p.imageUrl
+                              ? <img src={p.imageUrl} alt={p.name} className="w-full h-full object-contain mix-blend-multiply" />
+                              : <Package size={16} className="text-[var(--text-s)] opacity-30" />}
+                          </div>
+                          {/* Info */}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-black text-[var(--text-p)] truncate">{p.name}</p>
+                            <div className="flex items-center gap-1 mt-0.5">
+                              {[1,2,3,4,5].map(s => (
+                                <Star key={s} size={10}
+                                  fill={s <= Math.round(p.rating ?? 0) ? '#FFD700' : 'none'}
+                                  stroke="#FFD700" strokeWidth={1.5} />
+                              ))}
+                              <span className="text-[9px] font-black text-[var(--text-s)] ml-1">{(p.rating ?? 0).toFixed(1)}</span>
+                            </div>
+                            <div className="mt-1.5 h-1.5 bg-[var(--border-c)] rounded-full overflow-hidden">
+                              <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: '#FFD700' }} />
+                            </div>
+                          </div>
+                          {/* Reviews */}
+                          <div className="flex-shrink-0 text-center">
+                            <p className="font-black text-sm text-[var(--text-p)]">{p.totalReviews ?? 0}</p>
+                            <p className="text-[8px] font-bold text-[var(--text-s)] uppercase">reviews</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {products.length === 0 && (
+                      <div className="text-center py-12 opacity-30"><Star size={40} className="mx-auto mb-2" /><p className="text-xs font-black uppercase">No data yet</p></div>
+                    )}
                   </div>
                 )}
               </motion.div>
@@ -759,41 +841,78 @@ const AdminDashboard: React.FC = () => {
             {/* ── TOP-UP REQUESTS ───────────────────────────────────── */}
             {activeSection === 'topup' && (
               <motion.div key="topup" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+                {/* Filter pills */}
                 <div className="flex gap-2 flex-wrap">
                   {(['ALL', 'PENDING', 'APPROVED', 'REJECTED'] as const).map(f => (
                     <button key={f} onClick={() => setTopUpFilter(f)}
-                      className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${topUpFilter === f ? 'bg-primary text-white shadow-md' : 'bg-[var(--card-bg)] text-[var(--text-s)] border border-[var(--border-c)] hover:border-primary/40'}`}>
+                      className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${topUpFilter === f ? 'bg-primary text-white shadow-md' : 'bg-[var(--card-bg)] text-[var(--text-s)] border border-[var(--border-c)] hover:border-primary/40'}`}>
                       {f} {f !== 'ALL' && `(${topUpRequests.filter(r => r.status === f).length})`}
                     </button>
                   ))}
                 </div>
-                <div className="bg-[var(--card-bg)] rounded-2xl border border-[var(--border-c)] overflow-hidden shadow-sm">
-                  <div className="divide-y divide-[var(--border-c)]">
-                    {topUpRequests.filter(r => topUpFilter === 'ALL' || r.status === topUpFilter).length === 0 ? (
-                      <div className="p-12 text-center opacity-30"><p className="text-xs font-black uppercase">No requests found</p></div>
-                    ) : topUpRequests.filter(r => topUpFilter === 'ALL' || r.status === topUpFilter).map(r => (
-                      <div key={r.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-primary/5 transition-colors">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 bg-primary/10 rounded-xl flex items-center justify-center text-primary font-black text-sm flex-shrink-0">{r.userName?.[0] ?? '?'}</div>
-                          <div>
-                            <p className="text-xs font-black text-[var(--text-p)]">{r.userName}</p>
-                            <p className="text-[10px] text-[var(--text-s)] font-bold">{r.userEmail}</p>
+
+                {(() => {
+                  const filtered = topUpRequests.filter(r => topUpFilter === 'ALL' || r.status === topUpFilter);
+                  if (filtered.length === 0) return (
+                    <div className="py-20 text-center opacity-30"><Wallet size={48} className="mx-auto mb-3" /><p className="text-xs font-black uppercase">No requests found</p></div>
+                  );
+                  return (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                      {filtered.map((r, i) => (
+                        <motion.div key={r.id}
+                          initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                          className="bg-[var(--card-bg)] rounded-2xl border border-[var(--border-c)] overflow-hidden shadow-sm hover:shadow-md transition-all">
+                          {/* Status strip */}
+                          <div className={`h-1 w-full ${r.status === 'PENDING' ? 'bg-amber' : r.status === 'APPROVED' ? 'bg-primary' : 'bg-red'}`} />
+                          <div className="p-5">
+                            {/* User info */}
+                            <div className="flex items-center gap-3 mb-4">
+                              <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-black italic flex-shrink-0">
+                                {r.userName?.[0] ?? '?'}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-sm font-black text-[var(--text-p)] truncate">{r.userName}</p>
+                                <p className="text-[10px] text-[var(--text-s)] font-bold truncate">{r.userEmail}</p>
+                              </div>
+                            </div>
+
+                            {/* Amount highlight */}
+                            <div className="bg-[var(--bg-main)] rounded-xl p-4 mb-4 text-center">
+                              <p className="text-[9px] font-black text-[var(--text-s)] uppercase tracking-widest mb-1">Requested Amount</p>
+                              <p className="text-2xl font-black text-primary italic">${Number(r.amount).toFixed(2)}</p>
+                            </div>
+
+                            {/* Status + date */}
+                            <div className="flex items-center justify-between mb-4">
+                              <span className={`text-[8px] font-black uppercase px-2.5 py-1 rounded-full border ${
+                                r.status === 'PENDING'  ? 'bg-amber/10 text-amber border-amber/20' :
+                                r.status === 'APPROVED' ? 'bg-primary/10 text-primary border-primary/20' :
+                                'bg-red/10 text-red border-red/20'
+                              }`}>{r.status}</span>
+                              <span className="text-[9px] text-[var(--text-s)] font-bold">
+                                {new Date(r.createdAt).toLocaleDateString()}
+                              </span>
+                            </div>
+
+                            {/* Actions */}
+                            {r.status === 'PENDING' && (
+                              <div className="flex gap-2">
+                                <button onClick={() => doAction('approve', () => walletService.approveRequest(r.id))}
+                                  className="flex-1 btn-primary py-2 rounded-full text-[9px] flex items-center justify-center gap-1">
+                                  <Check size={11} /> Approve
+                                </button>
+                                <button onClick={() => doAction('reject', () => walletService.rejectRequest(r.id))}
+                                  className="flex-1 bg-red/10 text-red py-2 rounded-full text-[9px] font-black flex items-center justify-center gap-1 hover:bg-red/20 transition-colors border border-red/20">
+                                  <Ban size={11} /> Reject
+                                </button>
+                              </div>
+                            )}
                           </div>
-                        </div>
-                        <div className="flex items-center gap-3 flex-wrap">
-                          <span className="font-black text-primary text-base">${Number(r.amount).toFixed(2)}</span>
-                          <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full border ${r.status === 'PENDING' ? 'bg-amber/10 text-amber border-amber/20' : r.status === 'APPROVED' ? 'bg-primary/10 text-primary border-primary/20' : 'bg-red/10 text-red border-red/20'}`}>{r.status}</span>
-                          {r.status === 'PENDING' && (
-                            <>
-                              <button onClick={() => doAction('approve', () => walletService.approveRequest(r.id))} className="btn-primary py-1 px-2.5 rounded-lg text-[8px] flex items-center gap-1"><Check size={11} /> Approve</button>
-                              <button onClick={() => doAction('reject', () => walletService.rejectRequest(r.id))} className="bg-red/10 text-red py-1 px-2.5 rounded-lg text-[8px] font-black flex items-center gap-1 hover:bg-red/20 transition-colors border border-red/20"><Ban size={11} /> Reject</button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  );
+                })()}
               </motion.div>
             )}
 

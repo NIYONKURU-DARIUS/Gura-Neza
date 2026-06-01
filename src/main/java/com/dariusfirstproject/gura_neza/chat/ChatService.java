@@ -8,10 +8,16 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +28,43 @@ public class ChatService {
     private final ChatMessageRepository chatMessageRepository;
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
+
+    // ── USER sends a voice message ────────────────────────────────────────────
+    public ChatMessageDto userSendVoice(MultipartFile file) {
+        User user = getCurrentUser();
+
+        // Save file to uploads/voice/
+        String filename = UUID.randomUUID() + ".webm";
+        Path uploadDir = Paths.get("uploads/voice");
+        try {
+            Files.createDirectories(uploadDir);
+            Files.write(uploadDir.resolve(filename), file.getBytes());
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to save voice message", e);
+        }
+
+        String voiceUrl = "/api/chat/voice/" + filename;
+
+        ChatMessage message = ChatMessage.builder()
+                .user(user)
+                .senderRole("USER")
+                .content("[Voice message]")
+                .messageType("VOICE")
+                .voiceUrl(voiceUrl)
+                .sentAt(LocalDateTime.now())
+                .readByAdmin(false)
+                .build();
+        chatMessageRepository.save(message);
+
+        ChatMessageDto dto = toDto(message);
+        try {
+            messagingTemplate.convertAndSend("/topic/admin/inbox", dto);
+            messagingTemplate.convertAndSend("/topic/admin/thread/" + user.getId(), dto);
+        } catch (Exception e) {
+            log.warn("WebSocket push failed for voice message: {}", e.getMessage());
+        }
+        return dto;
+    }
 
     // ── USER sends a message ─────────────────────────────────────────────────
     public ChatMessageDto userSendMessage(String content) {
@@ -46,33 +89,7 @@ public class ChatService {
             log.warn("WebSocket push failed for user message: {}", e.getMessage());
         }
 
-        sendAutoReply(user);
         return dto;
-    }
-
-    // ── Auto-reply ───────────────────────────────────────────────────────────
-    private void sendAutoReply(User user) {
-        List<ChatMessage> thread = chatMessageRepository.findByUserIdOrderBySentAtAsc(user.getId());
-        if (!thread.isEmpty() && "ADMIN".equals(thread.get(thread.size() - 1).getSenderRole())) {
-            return;
-        }
-
-        ChatMessage autoMsg = ChatMessage.builder()
-                .user(user)
-                .senderRole("ADMIN")
-                .content("Thanks for reaching out! Our support team has received your message and will respond shortly. \uD83D\uDE4F")
-                .sentAt(LocalDateTime.now().plusSeconds(1))
-                .readByAdmin(true)
-                .build();
-        chatMessageRepository.save(autoMsg);
-
-        ChatMessageDto autoDto = toDto(autoMsg);
-        try {
-            messagingTemplate.convertAndSend("/topic/user/" + user.getId(), autoDto);
-            messagingTemplate.convertAndSend("/topic/admin/thread/" + user.getId(), autoDto);
-        } catch (Exception e) {
-            log.warn("WebSocket push failed for auto-reply: {}", e.getMessage());
-        }
     }
 
     // ── ADMIN sends a reply ──────────────────────────────────────────────────
@@ -99,6 +116,43 @@ public class ChatService {
         }
 
         return dto;
+    }
+
+    // ── USER edits own message ────────────────────────────────────────────────
+    public ChatMessageDto editMessage(Long messageId, String newContent) {
+        User user = getCurrentUser();
+        ChatMessage message = chatMessageRepository.findById(messageId)
+                .orElseThrow(() -> new RuntimeException("Message not found"));
+        if (!message.getUser().getId().equals(user.getId()) || !"USER".equals(message.getSenderRole())) {
+            throw new RuntimeException("Not authorized to edit this message");
+        }
+        message.setContent(newContent);
+        message.setEdited(true);
+        chatMessageRepository.save(message);
+        ChatMessageDto dto = toDto(message);
+        try {
+            messagingTemplate.convertAndSend("/topic/admin/thread/" + user.getId(), dto);
+        } catch (Exception e) {
+            log.warn("WebSocket push failed for edit: {}", e.getMessage());
+        }
+        return dto;
+    }
+
+    // ── USER deletes own message ──────────────────────────────────────────────
+    public void deleteMessage(Long messageId) {
+        User user = getCurrentUser();
+        ChatMessage message = chatMessageRepository.findById(messageId)
+                .orElseThrow(() -> new RuntimeException("Message not found"));
+        if (!message.getUser().getId().equals(user.getId()) || !"USER".equals(message.getSenderRole())) {
+            throw new RuntimeException("Not authorized to delete this message");
+        }
+        chatMessageRepository.delete(message);
+        try {
+            Object signal = java.util.Map.of("deleted", true, "id", messageId);
+            messagingTemplate.convertAndSend("/topic/admin/thread/" + user.getId(), signal);
+        } catch (Exception e) {
+            log.warn("WebSocket push failed for delete: {}", e.getMessage());
+        }
     }
 
     // ── USER history ─────────────────────────────────────────────────────────
@@ -144,7 +198,6 @@ public class ChatService {
     }
 
     private ChatMessageDto toDto(ChatMessage m) {
-        // Use @AllArgsConstructor: (id, userId, userName, senderRole, content, sentAt, readByAdmin)
         return new ChatMessageDto(
                 m.getId(),
                 m.getUser().getId(),
@@ -152,7 +205,10 @@ public class ChatService {
                 m.getSenderRole(),
                 m.getContent(),
                 m.getSentAt(),
-                m.isReadByAdmin()
+                m.isReadByAdmin(),
+                m.isEdited(),
+                m.getMessageType() != null ? m.getMessageType() : "TEXT",
+                m.getVoiceUrl()
         );
     }
 }
