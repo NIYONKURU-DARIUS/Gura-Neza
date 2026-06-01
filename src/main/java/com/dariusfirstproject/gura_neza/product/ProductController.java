@@ -36,8 +36,10 @@ public class ProductController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "12") int size,
             @RequestParam(defaultValue = "id") String sort,
-            @RequestParam(defaultValue = "asc") String direction) {
-        return ResponseEntity.ok(productService.getPagedProducts(page, size, sort, direction));
+            @RequestParam(defaultValue = "asc") String direction,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String search) {
+        return ResponseEntity.ok(productService.getPagedProducts(page, size, sort, direction, category, search));
     }
 
     @PostMapping

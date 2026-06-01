@@ -12,6 +12,7 @@ import OrderDetail from './pages/OrderDetail';
 import Wallet from './pages/Wallet';
 import Dashboard from './pages/Dashboard';
 import AdminDashboard from './pages/AdminDashboard';
+import Settings from './pages/Settings';
 import ChatWidget from './components/ChatWidget';
 import LoadingScreen from './components/LoadingScreen';
 import { AnimatePresence } from 'framer-motion';
@@ -61,6 +62,7 @@ function AppRoutes() {
           <Route path="/order/:id" element={<ProtectedRoute><OrderDetail /></ProtectedRoute>} />
           <Route path="/wallet" element={<ProtectedRoute><Wallet /></ProtectedRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
           
           <Route path="/admin" element={<ProtectedRoute><AdminRoute><AdminDashboard /></AdminRoute></ProtectedRoute>} />
         </Routes>

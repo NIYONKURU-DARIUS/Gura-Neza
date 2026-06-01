@@ -6,9 +6,8 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 
@@ -20,6 +19,7 @@ public class UserController {
 
     private final WalletRepository walletRepository;
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @GetMapping("/me")
     public ResponseEntity<UserResponse> getCurrentUser(@AuthenticationPrincipal User user) {
@@ -32,6 +32,44 @@ public class UserController {
                 .name(user.getName())
                 .email(user.getEmail())
                 .role(user.getRole())
+                .walletBalance(balance)
+                .build());
+    }
+
+    @PutMapping("/me")
+    public ResponseEntity<?> updateCurrentUser(
+            @AuthenticationPrincipal User user,
+            @RequestBody UserUpdateRequest request) {
+
+        // Update name if provided
+        if (request.getName() != null && !request.getName().isBlank()) {
+            user.setName(request.getName().trim());
+        }
+
+        // Update password if newPassword is provided
+        if (request.getNewPassword() != null && !request.getNewPassword().isBlank()) {
+            if (request.getCurrentPassword() == null ||
+                    !passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+                return ResponseEntity.badRequest()
+                        .body(java.util.Map.of("message", "Current password is incorrect"));
+            }
+            if (request.getNewPassword().length() < 6) {
+                return ResponseEntity.badRequest()
+                        .body(java.util.Map.of("message", "New password must be at least 6 characters"));
+            }
+            user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        }
+
+        User saved = userRepository.save(user);
+        BigDecimal balance = walletRepository.findByUser(saved)
+                .map(Wallet::getBalance)
+                .orElse(BigDecimal.ZERO);
+
+        return ResponseEntity.ok(UserResponse.builder()
+                .id(saved.getId())
+                .name(saved.getName())
+                .email(saved.getEmail())
+                .role(saved.getRole())
                 .walletBalance(balance)
                 .build());
     }

@@ -33,11 +33,19 @@ export const productService = {
     page: number,
     size: number,
     sort: string,
-    direction: string
+    direction: string,
+    category?: string,
+    search?: string
   ): Promise<PageResponse<Product>> => {
-    const response = await api.get(
-      `/products/paged?page=${page}&size=${size}&sort=${sort}&direction=${direction}`
-    );
+    const params = new URLSearchParams({
+      page: String(page),
+      size: String(size),
+      sort,
+      direction,
+    });
+    if (category && category !== 'ALL') params.set('category', category);
+    if (search && search.trim()) params.set('search', search.trim());
+    const response = await api.get(`/products/paged?${params.toString()}`);
     return response.data;
   },
 

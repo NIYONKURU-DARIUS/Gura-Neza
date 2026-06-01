@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowRight, Coffee, Smartphone, Shirt, Heart,
   ShoppingCart, Menu, Package, MessageSquare,
   Wallet, Shield, Zap, Star, ChevronDown,
-  X, TrendingUp, Users, Globe, Sparkles, Sun, Moon
+  X, TrendingUp, Users, Globe, Sun, Moon
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useStore } from '../context/store';
@@ -109,7 +109,6 @@ const Welcome: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeTestimonial, setActiveTestimonial] = useState(0);
   const [darkMode, setDarkMode] = useState(false);
-  const { scrollY } = useScroll();
   const { token } = useStore();
   const heroRef = useRef<HTMLDivElement>(null);
 
@@ -125,9 +124,7 @@ const Welcome: React.FC = () => {
   const cardBg = darkMode ? 'bg-white/[0.03]' : 'bg-white';
   const cardBorder = darkMode ? 'border-white/5 hover:border-white/10' : 'border-gray-200 hover:border-gray-300';
 
-  const heroY = useTransform(scrollY, [0, 600], [0, -120]);
-  const heroOpacity = useTransform(scrollY, [0, 400], [1, 0]);
-  const heroScale = useTransform(scrollY, [0, 400], [1, 1.08]);
+
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 60);
@@ -267,114 +264,248 @@ const Welcome: React.FC = () => {
       </AnimatePresence>
 
       {/* ── HERO ───────────────────────────────────────────────────────── */}
-      <section ref={heroRef} className={`relative h-screen min-h-[700px] flex items-center justify-center overflow-hidden ${darkMode ? 'bg-black' : 'bg-gray-900'}`}>
-        {/* Background image with parallax */}
-        <motion.div
-          style={{ scale: heroScale }}
-          className="absolute inset-0 z-0"
-        >
-          <img
-            src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=2070"
-            className={`w-full h-full object-cover ${darkMode ? 'opacity-30' : 'opacity-50'}`}
-            alt="hero"
-          />
-          {/* Gradient overlays */}
-          <div className={`absolute inset-0 ${darkMode ? 'bg-gradient-to-b from-black/70 via-black/20 to-black' : 'bg-gradient-to-b from-gray-900/80 via-gray-900/30 to-gray-900'}`} />
-          <div className={`absolute inset-0 ${darkMode ? 'bg-gradient-to-r from-black/60 via-transparent to-black/60' : 'bg-gradient-to-r from-gray-900/60 via-transparent to-gray-900/60'}`} />
-        </motion.div>
-
-        {/* Animated grid lines */}
-        <div className="absolute inset-0 z-0 opacity-[0.04]"
+      <section
+        ref={heroRef}
+        className="relative min-h-screen flex items-center overflow-hidden"
+        style={{
+          background: darkMode
+            ? 'linear-gradient(135deg, #0a0a0a 0%, #0d1a0d 40%, #0a1a10 100%)'
+            : 'linear-gradient(135deg, #f0faf2 0%, #e8f5e9 40%, #f1f8f2 100%)',
+        }}
+      >
+        {/* Radial glow — top right */}
+        <div
+          className="absolute top-0 right-0 w-[600px] h-[600px] pointer-events-none"
           style={{
-            backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)',
-            backgroundSize: '80px 80px',
+            background: darkMode
+              ? 'radial-gradient(circle at 80% 20%, rgba(46,125,50,0.18) 0%, transparent 65%)'
+              : 'radial-gradient(circle at 80% 20%, rgba(46,125,50,0.12) 0%, transparent 65%)',
+          }}
+        />
+        {/* Radial glow — bottom left */}
+        <div
+          className="absolute bottom-0 left-0 w-[400px] h-[400px] pointer-events-none"
+          style={{
+            background: darkMode
+              ? 'radial-gradient(circle at 20% 80%, rgba(76,175,80,0.10) 0%, transparent 60%)'
+              : 'radial-gradient(circle at 20% 80%, rgba(46,125,50,0.08) 0%, transparent 60%)',
           }}
         />
 
-        {/* Glowing orbs */}
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-blue-500/10 rounded-full blur-[100px] pointer-events-none" />
+        {/* Subtle dot-grid */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage: darkMode
+              ? 'radial-gradient(circle, rgba(255,255,255,0.035) 1px, transparent 1px)'
+              : 'radial-gradient(circle, rgba(46,125,50,0.10) 1px, transparent 1px)',
+            backgroundSize: '32px 32px',
+          }}
+        />
 
-        <motion.div
-          style={{ y: heroY, opacity: heroOpacity }}
-          className="relative z-10 text-center px-4 max-w-5xl mx-auto"
-        >
-          {/* Badge */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="mb-8 inline-flex items-center gap-2.5 px-5 py-2 rounded-full bg-white/5 backdrop-blur-md border border-white/10"
-          >
-            <div className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />
-            <span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/60">
-              Rwanda's #1 Digital Marketplace
-            </span>
-            <Sparkles size={12} className="text-primary/60" />
-          </motion.div>
+        <div className="relative z-10 w-full max-w-[1400px] mx-auto px-6 sm:px-12 pt-28 pb-32 flex flex-col lg:flex-row items-center gap-12 lg:gap-0">
 
-          {/* Headline */}
-          <motion.h1
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.35, duration: 0.8 }}
-            className="text-5xl sm:text-7xl md:text-8xl font-black text-white italic tracking-tighter leading-[0.88] mb-8 uppercase"
-          >
-            Shop Smarter.
-            <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-green-400 to-emerald-300">
-              Live Better.
-            </span>
-          </motion.h1>
+          {/* ── LEFT: Text content ── */}
+          <div className="flex-1 flex flex-col justify-center lg:pr-12">
 
-          {/* Subtext */}
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className="text-base sm:text-lg text-white/40 font-bold mb-12 max-w-2xl mx-auto leading-relaxed"
-          >
-            Curated collections, a seamless digital wallet, and real-time support —
-            all in one place built for Rwanda and beyond.
-          </motion.p>
+            {/* Eyebrow badge */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.15 }}
+              className="inline-flex items-center gap-2 mb-6 self-start"
+            >
+              <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+              <span className={`text-[9px] font-black uppercase tracking-[0.35em] ${darkMode ? 'text-white/40' : 'text-gray-500'}`}>
+                Rwanda's #1 Digital Marketplace
+              </span>
+            </motion.div>
 
-          {/* CTA row */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.65 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-4"
-          >
-            <Link to={token ? '/products' : '/register'}>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="group flex items-center gap-3 bg-primary text-white font-black text-sm uppercase tracking-widest px-10 py-5 rounded-2xl shadow-2xl shadow-primary/40 hover:shadow-primary/60 transition-all"
+            {/* Main headline */}
+            <motion.h1
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25, duration: 0.7 }}
+              className={`font-black italic tracking-tighter leading-[0.88] uppercase mb-6 ${darkMode ? 'text-white' : 'text-gray-900'}`}
+              style={{ fontSize: 'clamp(2.8rem, 7vw, 5.5rem)' }}
+            >
+              Shop The
+              <br />
+              <span className="text-primary">BEST</span>
+              <br />
+              <span className={darkMode ? 'text-white/80' : 'text-gray-800'}>WITH US!</span>
+            </motion.h1>
+
+            {/* Description */}
+            <motion.p
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className={`font-bold leading-relaxed mb-10 max-w-sm ${darkMode ? 'text-white/40' : 'text-gray-500'}`}
+              style={{ fontSize: 'clamp(0.72rem, 1.2vw, 0.85rem)' }}
+            >
+              Curated collections, a seamless digital wallet, and real-time support —
+              all in one place built for Rwanda and beyond.
+            </motion.p>
+
+            {/* CTA buttons */}
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.52 }}
+              className="flex items-center gap-4 mb-12"
+            >
+              <Link to={token ? '/products' : '/register'}>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="group flex items-center gap-3 bg-primary text-white font-black uppercase tracking-widest px-8 py-4 rounded-2xl shadow-xl shadow-primary/30 hover:shadow-primary/50 transition-all"
+                  style={{ fontSize: '0.65rem' }}
+                >
+                  Start Shopping
+                  <ArrowRight size={15} className="group-hover:translate-x-1 transition-transform" />
+                </motion.button>
+              </Link>
+              <Link to="/login">
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  className={`font-black uppercase tracking-widest px-8 py-4 rounded-2xl border transition-all ${
+                    darkMode
+                      ? 'border-white/10 text-white/60 hover:text-white hover:border-white/20 hover:bg-white/5'
+                      : 'border-primary/30 text-primary hover:border-primary hover:bg-primary/5'
+                  }`}
+                  style={{ fontSize: '0.65rem' }}
+                >
+                  Sign In
+                </motion.button>
+              </Link>
+            </motion.div>
+
+            {/* Social proof row */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.65 }}
+              className="flex items-center gap-6"
+            >
+              <div className="flex -space-x-2">
+                {['A', 'J', 'C', 'M'].map((l, i) => (
+                  <div
+                    key={i}
+                    className={`w-8 h-8 rounded-full border-2 flex items-center justify-center font-black text-[9px] ${
+                      darkMode
+                        ? 'bg-primary/20 border-[#0d1a0d] text-primary'
+                        : 'bg-primary/15 border-[#f0faf2] text-primary'
+                    }`}
+                    style={{ zIndex: 4 - i }}
+                  >
+                    {l}
+                  </div>
+                ))}
+              </div>
+              <div>
+                <div className="flex gap-0.5 mb-0.5">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} size={10} className="text-amber-400 fill-amber-400" />
+                  ))}
+                </div>
+                <p className={`font-black text-[9px] uppercase tracking-widest ${darkMode ? 'text-white/30' : 'text-gray-400'}`}>
+                  12,000+ happy shoppers
+                </p>
+              </div>
+            </motion.div>
+          </div>
+
+          {/* ── RIGHT: Blob + circular image ── */}
+          <div className="flex-1 relative flex items-center justify-center min-h-[420px] lg:min-h-[560px]">
+
+            {/* Large primary blob */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.3, duration: 0.9, ease: 'easeOut' }}
+              className="absolute"
+              style={{ top: '0%', right: '5%', width: '72%', height: '72%' }}
+            >
+              <svg viewBox="0 0 400 380" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+                <path
+                  d="M320 40 C380 40 400 100 390 160 C380 220 340 240 300 280 C260 320 220 370 160 360 C100 350 40 300 20 240 C0 180 20 100 70 60 C120 20 180 10 240 20 C280 28 300 40 320 40Z"
+                  fill={darkMode ? '#1a3a1a' : '#2E7D32'}
+                  opacity={darkMode ? 0.9 : 1}
+                />
+                <circle cx="370" cy="55" r="22" fill={darkMode ? '#2E7D32' : '#4CAF50'} opacity="0.7" />
+                <circle cx="80" cy="320" r="8" fill={darkMode ? '#2E7D32' : '#4CAF50'} opacity="0.5" />
+                <circle cx="60" cy="340" r="5" fill={darkMode ? '#2E7D32' : '#4CAF50'} opacity="0.3" />
+                <line x1="80" y1="320" x2="60" y2="340" stroke={darkMode ? '#4CAF50' : '#2E7D32'} strokeWidth="1.5" opacity="0.3" />
+                <circle cx="350" cy="290" r="6" fill={darkMode ? '#2E7D32' : '#4CAF50'} opacity="0.4" />
+                <circle cx="370" cy="310" r="4" fill={darkMode ? '#2E7D32' : '#4CAF50'} opacity="0.25" />
+                <line x1="350" y1="290" x2="370" y2="310" stroke={darkMode ? '#4CAF50' : '#2E7D32'} strokeWidth="1.5" opacity="0.25" />
+              </svg>
+            </motion.div>
+
+            {/* Circular product image */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.7, y: 30 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ delay: 0.5, duration: 0.8, ease: 'easeOut' }}
+              className="relative z-10"
+              style={{ width: 'clamp(280px, 44vw, 420px)', height: 'clamp(280px, 44vw, 420px)' }}
+            >
+              <div
+                className="absolute inset-[-16px] rounded-full border-2 border-dashed opacity-20"
+                style={{ borderColor: darkMode ? '#4CAF50' : '#2E7D32' }}
+              />
+              <div className={`w-full h-full rounded-full overflow-hidden shadow-2xl shadow-primary/20 ${darkMode ? 'border-4 border-white/10' : 'border-4 border-white'}`}>
+                <img
+                  src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=800&auto=format&fit=crop"
+                  alt="Marketplace"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <motion.div
+                animate={{ y: [0, -6, 0] }}
+                transition={{ repeat: Infinity, duration: 3, ease: 'easeInOut' }}
+                className={`absolute -top-4 -right-4 rounded-2xl px-3 py-2 shadow-xl flex items-center gap-2 ${darkMode ? 'bg-white/10 backdrop-blur-md border border-white/10' : 'bg-white border border-gray-100'}`}
               >
-                Start Shopping
-                <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-              </motion.button>
-            </Link>
-            <Link to="/login">
-              <motion.button
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-                className="flex items-center gap-3 bg-white/5 backdrop-blur-md border border-white/10 text-white font-black text-sm uppercase tracking-widest px-10 py-5 rounded-2xl hover:bg-white/10 transition-all"
+                <ShoppingCart size={13} className="text-primary" />
+                <span className={`text-[9px] font-black uppercase tracking-widest ${darkMode ? 'text-white/80' : 'text-gray-700'}`}>890+ Items</span>
+              </motion.div>
+              <motion.div
+                animate={{ y: [0, 6, 0] }}
+                transition={{ repeat: Infinity, duration: 3.5, ease: 'easeInOut', delay: 0.5 }}
+                className="absolute -bottom-4 -left-4 bg-primary rounded-2xl px-3 py-2 shadow-xl flex items-center gap-2"
               >
-                Sign In
-              </motion.button>
-            </Link>
-          </motion.div>
-        </motion.div>
+                <Zap size={13} className="text-white" />
+                <span className="text-[9px] font-black text-white uppercase tracking-widest">Fast Delivery</span>
+              </motion.div>
+            </motion.div>
 
-        {/* Scroll indicator */}
-        <motion.div
-          animate={{ y: [0, 8, 0] }}
-          transition={{ repeat: Infinity, duration: 2 }}
-          className="absolute bottom-10 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 text-white/20"        >
-          <span className="text-[8px] font-black uppercase tracking-[0.4em]">Scroll</span>
-          <ChevronDown size={16} />
-        </motion.div>
+            {/* Scroll indicator */}
+            <motion.div
+              animate={{ y: [0, 8, 0] }}
+              transition={{ repeat: Infinity, duration: 2 }}
+              className={`absolute bottom-0 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 ${darkMode ? 'text-white/20' : 'text-primary/30'}`}
+            >
+              <span className="text-[7px] font-black uppercase tracking-[0.4em]">Scroll</span>
+              <ChevronDown size={14} />
+            </motion.div>
+          </div>
+        </div>
+
+        {/* ── WAVE SEPARATOR — bottom edge ── */}
+        <div className="absolute bottom-0 left-0 w-full overflow-hidden leading-none pointer-events-none">
+          <svg
+            viewBox="0 0 1440 80"
+            preserveAspectRatio="none"
+            className="w-full h-16 sm:h-20"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M0,40 C240,80 480,0 720,40 C960,80 1200,0 1440,40 L1440,80 L0,80 Z"
+              fill={darkMode ? '#0d0d0d' : '#f9fafb'}
+            />
+          </svg>
+        </div>
       </section>
 
       {/* ── STATS TICKER ───────────────────────────────────────────────── */}

@@ -96,10 +96,26 @@ public class ProductService {
                 .collect(Collectors.toList());
     }
 
-    public Page<ProductResponse> getPagedProducts(int page, int size, String sort, String direction) {
+    public Page<ProductResponse> getPagedProducts(int page, int size, String sort, String direction,
+                                                   String category, String search) {
         Sort.Direction dir = "desc".equalsIgnoreCase(direction) ? Sort.Direction.DESC : Sort.Direction.ASC;
         Pageable pageable = PageRequest.of(page, size, Sort.by(dir, sort));
-        return productRepository.findAll(pageable).map(this::mapToResponse);
+
+        boolean hasSearch = search != null && !search.isBlank();
+        boolean hasCategory = category != null && !category.isBlank() && !category.equalsIgnoreCase("ALL");
+
+        Page<Product> result;
+        if (hasSearch && hasCategory) {
+            result = productRepository.findByNameContainingIgnoreCaseAndCategory(search.trim(), category, pageable);
+        } else if (hasSearch) {
+            result = productRepository.findByNameContainingIgnoreCase(search.trim(), pageable);
+        } else if (hasCategory) {
+            result = productRepository.findByCategory(category, pageable);
+        } else {
+            result = productRepository.findAll(pageable);
+        }
+
+        return result.map(this::mapToResponse);
     }
 
     // ── Product Ratings ──────────────────────────────────────────────────

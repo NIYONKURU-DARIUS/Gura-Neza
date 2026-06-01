@@ -49,29 +49,12 @@ const ProductCatalog: React.FC = () => {
     setError(null);
     try {
       const [sortField, sortDir] = sort.split(',');
-
-      if (search.trim()) {
-        // Search doesn't support pagination — fetch all and filter client-side
-        const data = await productService.searchProducts(search.trim());
-        let filtered = data;
-        if (category !== 'ALL') filtered = filtered.filter(p => p.category === category);
-        // Apply sort client-side
-        filtered = [...filtered].sort((a, b) =>
-          sortDir === 'desc' ? Number(b.price) - Number(a.price) : Number(a.price) - Number(b.price)
-        );
-        setProducts(filtered);
-        setTotalPages(1);
-        setTotalElements(filtered.length);
-      } else {
-        const result = await productService.getPagedProducts(currentPage, PAGE_SIZE, sortField, sortDir);
-        let content = result.content;
-        if (category !== 'ALL') {
-          content = content.filter(p => p.category === category);
-        }
-        setProducts(content);
-        setTotalPages(result.totalPages);
-        setTotalElements(result.totalElements);
-      }
+      const result = await productService.getPagedProducts(
+        currentPage, PAGE_SIZE, sortField, sortDir, category, search
+      );
+      setProducts(result.content);
+      setTotalPages(result.totalPages);
+      setTotalElements(result.totalElements);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to load products');
     } finally {
@@ -161,7 +144,7 @@ const ProductCatalog: React.FC = () => {
                 Curated Marketplace.
               </h1>
               <p className="text-[var(--text-s)] font-bold mt-1 text-xs">
-                {loading ? 'Loading...' : `${displayedProducts.length} verified products`}
+                {loading ? 'Loading...' : `${totalElements} verified products`}
               </p>
             </div>
 
@@ -221,30 +204,101 @@ const ProductCatalog: React.FC = () => {
                   </div>
                 )}
 
-                {/* Pagination */}
-                {!error && totalPages > 1 && (
-                  <div className="flex items-center justify-center gap-4 mt-12">
-                    <button
-                      onClick={() => setPage(p => Math.max(0, p - 1))}
-                      disabled={page === 0}
-                      className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--card-bg)] border border-[var(--border-c)] font-black text-xs text-[var(--text-p)] hover:border-primary/40 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                    >
-                      <ChevronLeft size={16} /> Previous
-                    </button>
+                {/* ── Pagination ── */}
+                {!error && totalPages > 1 && (() => {
+                  // Build page number array with ellipsis
+                  const getPages = (): (number | '...')[] => {
+                    if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i);
+                    const pages: (number | '...')[] = [];
+                    pages.push(0);
+                    if (page > 3) pages.push('...');
+                    for (let i = Math.max(1, page - 1); i <= Math.min(totalPages - 2, page + 1); i++) {
+                      pages.push(i);
+                    }
+                    if (page < totalPages - 4) pages.push('...');
+                    pages.push(totalPages - 1);
+                    return pages;
+                  };
 
-                    <span className="text-xs font-black text-[var(--text-s)] uppercase tracking-widest">
-                      Page {page + 1} of {totalPages}
-                    </span>
+                  const goTo = (p: number) => {
+                    setPage(p);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  };
 
-                    <button
-                      onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
-                      disabled={page >= totalPages - 1}
-                      className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--card-bg)] border border-[var(--border-c)] font-black text-xs text-[var(--text-p)] hover:border-primary/40 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                    >
-                      Next <ChevronRight size={16} />
-                    </button>
-                  </div>
-                )}
+                  return (
+                    <div className="mt-14 flex flex-col items-center gap-4">
+                      {/* Page info */}
+                      <p className="text-[9px] font-black text-[var(--text-s)] uppercase tracking-widest">
+                        Page {page + 1} of {totalPages} &nbsp;·&nbsp; {totalElements} products
+                      </p>
+
+                      {/* Controls row */}
+                      <div className="flex items-center gap-1.5 flex-wrap justify-center">
+                        {/* First */}
+                        <button
+                          onClick={() => goTo(0)}
+                          disabled={page === 0}
+                          title="First page"
+                          className="w-9 h-9 rounded-xl bg-[var(--card-bg)] border border-[var(--border-c)] flex items-center justify-center text-[var(--text-s)] hover:border-primary/50 hover:text-primary transition-all disabled:opacity-25 disabled:cursor-not-allowed"
+                        >
+                          <ChevronLeft size={12} className="translate-x-[1px]" />
+                          <ChevronLeft size={12} className="-translate-x-[3px]" />
+                        </button>
+
+                        {/* Prev */}
+                        <button
+                          onClick={() => goTo(Math.max(0, page - 1))}
+                          disabled={page === 0}
+                          className="h-9 px-3 rounded-xl bg-[var(--card-bg)] border border-[var(--border-c)] flex items-center gap-1.5 text-[var(--text-s)] font-black text-[10px] uppercase tracking-wide hover:border-primary/50 hover:text-primary transition-all disabled:opacity-25 disabled:cursor-not-allowed"
+                        >
+                          <ChevronLeft size={14} /> Prev
+                        </button>
+
+                        {/* Page numbers */}
+                        {getPages().map((p, i) =>
+                          p === '...' ? (
+                            <span key={`ellipsis-${i}`} className="w-9 h-9 flex items-center justify-center text-[var(--text-s)] font-black text-xs select-none">
+                              ···
+                            </span>
+                          ) : (
+                            <motion.button
+                              key={p}
+                              whileTap={{ scale: 0.9 }}
+                              onClick={() => goTo(p as number)}
+                              className={`w-9 h-9 rounded-xl font-black text-xs transition-all ${
+                                page === p
+                                  ? 'bg-primary text-white shadow-lg shadow-primary/30 scale-110'
+                                  : 'bg-[var(--card-bg)] border border-[var(--border-c)] text-[var(--text-s)] hover:border-primary/50 hover:text-primary'
+                              }`}
+                            >
+                              {(p as number) + 1}
+                            </motion.button>
+                          )
+                        )}
+
+                        {/* Next */}
+                        <button
+                          onClick={() => goTo(Math.min(totalPages - 1, page + 1))}
+                          disabled={page >= totalPages - 1}
+                          className="h-9 px-3 rounded-xl bg-[var(--card-bg)] border border-[var(--border-c)] flex items-center gap-1.5 text-[var(--text-s)] font-black text-[10px] uppercase tracking-wide hover:border-primary/50 hover:text-primary transition-all disabled:opacity-25 disabled:cursor-not-allowed"
+                        >
+                          Next <ChevronRight size={14} />
+                        </button>
+
+                        {/* Last */}
+                        <button
+                          onClick={() => goTo(totalPages - 1)}
+                          disabled={page >= totalPages - 1}
+                          title="Last page"
+                          className="w-9 h-9 rounded-xl bg-[var(--card-bg)] border border-[var(--border-c)] flex items-center justify-center text-[var(--text-s)] hover:border-primary/50 hover:text-primary transition-all disabled:opacity-25 disabled:cursor-not-allowed"
+                        >
+                          <ChevronRight size={12} className="-translate-x-[1px]" />
+                          <ChevronRight size={12} className="translate-x-[3px]" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })()}
               </motion.div>
             )}
           </AnimatePresence>
