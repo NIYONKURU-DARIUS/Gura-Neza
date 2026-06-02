@@ -143,7 +143,7 @@ const ProductDetail: React.FC = () => {
             
             <div className="flex items-center justify-between mb-10 pb-10 border-b border-[var(--border-c)]">
                 <div className="flex items-center gap-4">
-                    <span className="text-4xl sm:text-5xl font-mono-price font-black text-primary italic">${product.price.toFixed(2)}</span>
+                    <span className="text-4xl sm:text-5xl font-mono-price font-black text-primary italic">RWF {product.price.toLocaleString('en-RW')}</span>
                 </div>
                 <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] border ${getStockInfo(product.stock).bg} ${getStockInfo(product.stock).text} ${getStockInfo(product.stock).border}`}>
                    <div className={`w-2 h-2 rounded-full ${getStockInfo(product.stock).dot} animate-pulse`} />

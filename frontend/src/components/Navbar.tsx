@@ -100,7 +100,7 @@ const Navbar: React.FC<NavbarProps> = ({ onSearch }) => {
           <Link to="/wallet" className="hidden sm:flex items-center gap-3 bg-[var(--input-bg)] px-4 py-2 rounded-xl border border-[var(--border-c)] shadow-sm hover:border-primary/30 transition-all">
             <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
             <span className="font-mono-price font-bold text-primary text-sm">
-              ${user.walletBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              RWF {user.walletBalance.toLocaleString('en-RW')}
             </span>
           </Link>
         )}

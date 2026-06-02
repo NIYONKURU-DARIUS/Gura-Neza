@@ -39,14 +39,10 @@ const Login: React.FC = () => {
       });
       // Pre-load cart
       await fetchCart();
-      // 🔊 Greet the user by name
+      // 🔊 Greet the user by name — navigate after a short delay so speech isn't cancelled
       sayWelcomeBack(profile.name);
-
-      if (profile.role === 'ADMIN') {
-        navigate('/admin');
-      } else {
-        navigate('/products');
-      }
+      const destination = profile.role === 'ADMIN' ? '/admin' : '/products';
+      setTimeout(() => navigate(destination), 800);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Invalid email or password');
     } finally {

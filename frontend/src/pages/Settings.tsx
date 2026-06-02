@@ -268,7 +268,7 @@ const Settings: React.FC = () => {
               <div className="flex justify-between items-center py-3">
                 <span className="text-xs font-black text-[var(--text-s)] uppercase tracking-widest">Wallet Balance</span>
                 <span className="text-sm font-black text-[var(--text-p)] italic">
-                  ${(user?.walletBalance ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  RWF {(user?.walletBalance ?? 0).toLocaleString('en-RW')}
                 </span>
               </div>
             </div>

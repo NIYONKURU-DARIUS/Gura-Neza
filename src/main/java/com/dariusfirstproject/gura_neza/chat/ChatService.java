@@ -68,54 +68,70 @@ public class ChatService {
 
     // ── USER sends a message ─────────────────────────────────────────────────
     public ChatMessageDto userSendMessage(String content) {
-        User user = getCurrentUser();
+        return userSendMessage(content, null);
+    }
 
-        // Use builder — @Builder.Default on readByAdmin requires it
+    public ChatMessageDto userSendMessage(String content, String replyToContent) {
+        User user = getCurrentUser();
         ChatMessage message = ChatMessage.builder()
                 .user(user)
                 .senderRole("USER")
                 .content(content)
+                .replyToContent(replyToContent)
                 .sentAt(LocalDateTime.now())
                 .readByAdmin(false)
                 .build();
         chatMessageRepository.save(message);
-
         ChatMessageDto dto = toDto(message);
-
         try {
             messagingTemplate.convertAndSend("/topic/admin/inbox", dto);
             messagingTemplate.convertAndSend("/topic/admin/thread/" + user.getId(), dto);
         } catch (Exception e) {
             log.warn("WebSocket push failed for user message: {}", e.getMessage());
         }
-
         return dto;
     }
 
     // ── ADMIN sends a reply ──────────────────────────────────────────────────
     public ChatMessageDto adminSendMessage(Long userId, String content) {
+        return adminSendMessage(userId, content, null);
+    }
+
+    public ChatMessageDto adminSendMessage(Long userId, String content, String replyToContent) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-
         ChatMessage message = ChatMessage.builder()
                 .user(user)
                 .senderRole("ADMIN")
                 .content(content)
+                .replyToContent(replyToContent)
                 .sentAt(LocalDateTime.now())
                 .readByAdmin(true)
                 .build();
         chatMessageRepository.save(message);
-
         ChatMessageDto dto = toDto(message);
-
         try {
             messagingTemplate.convertAndSend("/topic/user/" + userId, dto);
             messagingTemplate.convertAndSend("/topic/admin/thread/" + userId, dto);
         } catch (Exception e) {
             log.warn("WebSocket push failed for admin reply: {}", e.getMessage());
         }
-
         return dto;
+    }
+
+    // ── ADMIN deletes any message in a thread ────────────────────────────────
+    public void adminDeleteMessage(Long messageId) {
+        ChatMessage message = chatMessageRepository.findById(messageId)
+                .orElseThrow(() -> new RuntimeException("Message not found"));
+        Long userId = message.getUser().getId();
+        chatMessageRepository.delete(message);
+        try {
+            Object signal = java.util.Map.of("deleted", true, "id", messageId);
+            messagingTemplate.convertAndSend("/topic/admin/thread/" + userId, signal);
+            messagingTemplate.convertAndSend("/topic/user/" + userId, signal);
+        } catch (Exception e) {
+            log.warn("WebSocket push failed for admin delete: {}", e.getMessage());
+        }
     }
 
     // ── USER edits own message ────────────────────────────────────────────────
@@ -208,7 +224,8 @@ public class ChatService {
                 m.isReadByAdmin(),
                 m.isEdited(),
                 m.getMessageType() != null ? m.getMessageType() : "TEXT",
-                m.getVoiceUrl()
+                m.getVoiceUrl(),
+                m.getReplyToContent()
         );
     }
 }

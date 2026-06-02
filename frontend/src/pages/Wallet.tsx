@@ -106,7 +106,7 @@ const Wallet: React.FC = () => {
               <div>
                 <span className="text-white/70 font-black uppercase tracking-[0.3em] text-[10px] mb-3 block">Available Balance</span>
                 <h2 className="text-5xl sm:text-6xl font-black tracking-tighter drop-shadow-lg">
-                  ${Number(user?.walletBalance ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  RWF {Number(user?.walletBalance ?? 0).toLocaleString('en-RW')}
                 </h2>
               </div>
               <div className="w-16 h-16 bg-white/20 rounded-[2rem] flex items-center justify-center border border-white/20">
@@ -145,7 +145,7 @@ const Wallet: React.FC = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
-                    <span className="font-black text-base text-[var(--text-p)]">${Number(r.amount).toFixed(2)}</span>
+                    <span className="font-black text-base text-[var(--text-p)]">RWF {Number(r.amount).toLocaleString('en-RW')}</span>
                     <span className={`text-[9px] font-black uppercase px-2 py-1 rounded-full border ${STATUS_STYLES[r.status]}`}>
                       {r.status}
                     </span>
@@ -197,7 +197,7 @@ const Wallet: React.FC = () => {
                     </div>
                   </div>
                   <span className={`font-black text-base italic ${t.type === 'CREDIT' ? 'text-primary' : 'text-[var(--text-p)]'}`}>
-                    {t.type === 'CREDIT' ? '+' : '-'}${Number(t.amount).toFixed(2)}
+                    {t.type === 'CREDIT' ? '+' : '-'}RWF {Number(t.amount).toLocaleString('en-RW')}
                   </span>
                 </motion.div>
               ))
@@ -247,18 +247,18 @@ const Wallet: React.FC = () => {
                   <div className="space-y-4">
                     <div>
                       <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-s)] mb-2 block">
-                        Amount (USD)
+                        Amount (RWF)
                       </label>
                       <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-[var(--text-s)]">$</span>
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-[var(--text-s)] text-xs pointer-events-none">Rw:</span>
                         <input
                           type="number"
                           min="1"
-                          step="0.01"
-                          placeholder="0.00"
+                          step="1"
+                          placeholder="0"
                           value={amount}
                           onChange={e => { setAmount(e.target.value); setModalError(''); }}
-                          className="input-field pl-8 py-4 text-base font-black"
+                          className="input-field pl-16 py-4 text-base font-black"
                           disabled={submitting}
                           autoFocus
                         />

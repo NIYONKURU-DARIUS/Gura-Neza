@@ -19,4 +19,5 @@ public class ChatMessageDto {
     private boolean edited;
     private String messageType; // "TEXT" | "VOICE"
     private String voiceUrl;
+    private String replyToContent; // snippet of the message being replied to (null if not a reply)
 }

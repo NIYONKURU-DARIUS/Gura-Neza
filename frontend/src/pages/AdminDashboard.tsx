@@ -4,7 +4,7 @@ import {
   Users, ShoppingCart, Package, BarChart3, MessageSquare,
   LogOut, Check, Clock, Loader2, Plus, X, DollarSign,
   Send, Truck, Ban, Eye, Edit2, AlertTriangle, TrendingUp,
-  Star, Heart, Menu, Search, Wallet
+  Star, Heart, Menu, Search, Wallet, Trash2
 } from 'lucide-react';
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
@@ -62,6 +62,7 @@ const AdminDashboard: React.FC = () => {
   const [replyText, setReplyText] = useState('');
   const [isSendingReply, setIsSendingReply] = useState(false);
   const [replyError, setReplyError] = useState('');
+  const [adminReplyTo, setAdminReplyTo] = useState<ChatMessage | null>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const chatPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   useEffect(() => { activeChatIdRef.current = activeChatId; }, [activeChatId]);
@@ -133,9 +134,11 @@ const AdminDashboard: React.FC = () => {
 
   const handleSendReply = async () => {
     if (!replyText.trim() || !activeChatId || isSendingReply) return;
-    const text = replyText; setReplyText(''); setIsSendingReply(true); setReplyError('');
+    const text = replyText;
+    const replySnippet = adminReplyTo ? adminReplyTo.content.slice(0, 100) : undefined;
+    setReplyText(''); setAdminReplyTo(null); setIsSendingReply(true); setReplyError('');
     try {
-      const sent = await chatService.adminReply(activeChatId, text);
+      const sent = await chatService.adminReply(activeChatId, text, replySnippet);
       setMessages(prev => prev.some(m => m.id === sent.id) ? prev : [...prev, sent]);
       chatService.getAdminInbox().then(setInbox);
     } catch (err: any) {
@@ -143,6 +146,13 @@ const AdminDashboard: React.FC = () => {
       setReplyError(err.response?.data?.message || 'Failed to send reply');
       setTimeout(() => setReplyError(''), 4000);
     } finally { setIsSendingReply(false); }
+  };
+
+  const handleAdminDelete = async (messageId: number) => {
+    try {
+      await chatService.adminDeleteMessage(messageId);
+      setMessages(prev => prev.filter(m => m.id !== messageId));
+    } catch { /* silent */ }
   };
 
   const openAddModal = () => { setEditProduct(null); setProductForm(emptyProduct); setShowAddModal(true); };
@@ -360,8 +370,8 @@ const AdminDashboard: React.FC = () => {
                 {/* KPI row */}
                 <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
                   {[
-                    { label: 'Today Revenue', value: `$${Number(stats?.todayRevenue ?? 0).toFixed(2)}`, sub: 'confirmed orders', icon: <DollarSign size={18} />, color: 'text-primary bg-primary/10' },
-                    { label: 'Total Revenue', value: `$${Number(stats?.totalRevenue ?? 0).toFixed(2)}`, sub: 'all time', icon: <TrendingUp size={18} />, color: 'text-blue-500 bg-blue-50 dark:bg-blue-900/20' },
+                    { label: 'Today Revenue', value: `RWF ${Number(stats?.todayRevenue ?? 0).toLocaleString('en-RW')}`, sub: 'confirmed orders', icon: <DollarSign size={18} />, color: 'text-primary bg-primary/10' },
+                    { label: 'Total Revenue', value: `RWF ${Number(stats?.totalRevenue ?? 0).toLocaleString('en-RW')}`, sub: 'all time', icon: <TrendingUp size={18} />, color: 'text-blue-500 bg-blue-50 dark:bg-blue-900/20' },
                     { label: 'Total Orders', value: stats?.totalOrdersCount ?? 0, sub: `${stats?.pendingOrdersCount ?? 0} pending`, icon: <ShoppingCart size={18} />, color: 'text-amber bg-amber/10' },
                     { label: 'Total Users', value: stats?.totalUsersCount ?? 0, sub: `${stats?.totalProductsCount ?? 0} products`, icon: <Users size={18} />, color: 'text-violet-500 bg-violet-50 dark:bg-violet-900/20' },
                   ].map((kpi, i) => (
@@ -421,7 +431,7 @@ const AdminDashboard: React.FC = () => {
                         <CartesianGrid strokeDasharray="3 3" stroke="var(--border-c)" />
                         <XAxis dataKey="date" tick={{ fontSize: 9, fontWeight: 700, fill: 'var(--text-s)' }} axisLine={false} tickLine={false} />
                         <YAxis tick={{ fontSize: 9, fill: 'var(--text-s)' }} axisLine={false} tickLine={false} />
-                        <Tooltip contentStyle={{ background: 'var(--card-bg)', border: '1px solid var(--border-c)', borderRadius: 10, fontSize: 11 }} formatter={(v: any) => [`$${Number(v).toFixed(2)}`, 'Revenue']} />
+                        <Tooltip contentStyle={{ background: 'var(--card-bg)', border: '1px solid var(--border-c)', borderRadius: 10, fontSize: 11 }} formatter={(v: any) => [`RWF ${Number(v).toLocaleString('en-RW')}`, 'Revenue']} />
                         <Area type="monotone" dataKey="revenue" stroke="#2E7D32" strokeWidth={2.5} fill="url(#rg)" dot={{ fill: '#2E7D32', r: 3 }} activeDot={{ r: 5 }} />
                       </AreaChart>
                     </ResponsiveContainer>
@@ -530,7 +540,7 @@ const AdminDashboard: React.FC = () => {
                           <p className="text-[9px] text-[var(--text-s)] font-bold">{new Date(o.createdAt).toLocaleDateString()}</p>
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
-                          <span className="font-black text-primary text-xs">${Number(o.totalPrice).toFixed(2)}</span>
+                          <span className="font-black text-primary text-xs">RWF {Number(o.totalPrice).toLocaleString('en-RW')}</span>
                           <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border hidden sm:inline ${STATUS_STYLES[o.status]}`}>{o.status}</span>
                         </div>
                       </div>
@@ -574,7 +584,7 @@ const AdminDashboard: React.FC = () => {
                         <p className="text-[9px] font-black text-primary uppercase tracking-widest mb-1">{p.category}</p>
                         <h4 className="font-black text-[var(--text-p)] text-sm italic tracking-tight truncate mb-2">{p.name}</h4>
                         <div className="flex items-center justify-between mb-3">
-                          <span className="font-black text-primary text-base">${Number(p.price).toFixed(2)}</span>
+                          <span className="font-black text-primary text-base">RWF {Number(p.price).toLocaleString('en-RW')}</span>
                           <div className="flex items-center gap-2 text-[10px] text-[var(--text-s)] font-bold">
                             <span className="flex items-center gap-0.5"><Heart size={10} className="text-red" /> {p.likesCount ?? 0}</span>
                             <span className="flex items-center gap-0.5"><Star size={10} className="text-gold" fill="#FFD700" /> {(p.rating ?? 0).toFixed(1)}</span>
@@ -653,7 +663,7 @@ const AdminDashboard: React.FC = () => {
 
                           {/* Footer row */}
                           <div className="flex items-center justify-between pt-3 border-t border-[var(--border-c)]">
-                            <span className="font-black text-primary text-base italic">${Number(o.totalPrice).toFixed(2)}</span>
+                            <span className="font-black text-primary text-base italic">RWF {Number(o.totalPrice).toLocaleString('en-RW')}</span>
                             <div className="flex items-center gap-1.5">
                               <button onClick={() => setSelectedOrder(o)}
                                 className="p-1.5 text-[var(--text-s)] hover:text-primary hover:bg-primary/10 rounded-lg transition-colors">
@@ -723,7 +733,7 @@ const AdminDashboard: React.FC = () => {
                             <Wallet size={14} />
                             <span className="text-[9px] font-black uppercase tracking-widest">Wallet</span>
                           </div>
-                          <span className="font-black text-primary text-sm">${Number(u.walletBalance).toFixed(2)}</span>
+                          <span className="font-black text-primary text-sm">RWF {Number(u.walletBalance).toLocaleString('en-RW')}</span>
                         </div>
 
                         {/* Action */}
@@ -879,7 +889,7 @@ const AdminDashboard: React.FC = () => {
                             {/* Amount highlight */}
                             <div className="bg-[var(--bg-main)] rounded-xl p-4 mb-4 text-center">
                               <p className="text-[9px] font-black text-[var(--text-s)] uppercase tracking-widest mb-1">Requested Amount</p>
-                              <p className="text-2xl font-black text-primary italic">${Number(r.amount).toFixed(2)}</p>
+                              <p className="text-2xl font-black text-primary italic">RWF {Number(r.amount).toLocaleString('en-RW')}</p>
                             </div>
 
                             {/* Status + date */}
@@ -928,7 +938,7 @@ const AdminDashboard: React.FC = () => {
                     {inbox.length === 0 ? (
                       <div className="p-8 text-center opacity-30"><p className="text-[10px] font-black uppercase">Empty</p></div>
                     ) : inbox.map(item => (
-                      <button key={item.userId} onClick={() => setActiveChatId(item.userId)}
+                      <button key={item.userId} onClick={() => { setActiveChatId(item.userId); setAdminReplyTo(null); }}
                         className={`w-full p-4 text-left hover:bg-primary/5 transition-all ${activeChatId === item.userId ? 'bg-primary/10 border-r-2 border-primary' : ''}`}>
                         <div className="flex justify-between items-start mb-1">
                           <span className="text-xs font-black text-[var(--text-p)]">{item.userName}</span>
@@ -947,19 +957,62 @@ const AdminDashboard: React.FC = () => {
                         <h3 className="text-sm font-black italic">{inbox.find(i => i.userId === activeChatId)?.userName}</h3>
                       </div>
                       <div ref={chatScrollRef} className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
-                        {messages.map((m, i) => (
-                          <div key={i} className={`flex ${m.senderRole === 'ADMIN' ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`max-w-[70%] px-4 py-3 rounded-2xl text-xs font-bold leading-relaxed ${m.senderRole === 'ADMIN' ? 'bg-primary text-white rounded-tr-sm' : 'bg-[var(--bg-main)] text-[var(--text-p)] rounded-tl-sm border border-[var(--border-c)]'}`}>
-                              {m.content}
-                              <div className={`text-[8px] mt-1 opacity-40 ${m.senderRole === 'ADMIN' ? 'text-right' : 'text-left'}`}>{new Date(m.sentAt).toLocaleTimeString()}</div>
+                        {messages.map((m, i) => {
+                          const isAdmin = m.senderRole === 'ADMIN';
+                          return (
+                            <div key={m.id ?? i} className={`flex group/amsg ${isAdmin ? 'justify-end' : 'justify-start'}`}>
+                              <div className="relative">
+                                <div className={`max-w-[70%] px-4 py-3 rounded-2xl text-xs font-bold leading-relaxed ${isAdmin ? 'bg-primary text-white rounded-tr-sm' : 'bg-[var(--bg-main)] text-[var(--text-p)] rounded-tl-sm border border-[var(--border-c)]'}`}>
+                                  {/* Reply preview */}
+                                  {m.replyToContent && (
+                                    <div className={`text-[9px] font-black mb-1.5 px-2 py-1 rounded-lg border-l-2 truncate ${isAdmin ? 'bg-white/15 border-white/40 text-white/60' : 'bg-[var(--card-bg)] border-primary/40 text-[var(--text-s)]'}`}>
+                                      ↩ {m.replyToContent}
+                                    </div>
+                                  )}
+                                  {m.content}
+                                  <div className={`text-[8px] mt-1 opacity-40 ${isAdmin ? 'text-right' : 'text-left'}`}>{new Date(m.sentAt).toLocaleTimeString()}</div>
+                                </div>
+                                {/* Hover actions */}
+                                <div className={`absolute top-1/2 -translate-y-1/2 hidden group-hover/amsg:flex items-center gap-1 ${isAdmin ? '-left-16' : '-right-16'}`}>
+                                  {/* Reply — on user messages only */}
+                                  {!isAdmin && (
+                                    <button onClick={() => { setAdminReplyTo(m); setTimeout(() => document.getElementById('admin-reply-input')?.focus(), 50); }}
+                                      title="Reply" className="w-6 h-6 bg-[var(--card-bg)] border border-[var(--border-c)] rounded-lg flex items-center justify-center text-[var(--text-s)] hover:text-primary hover:border-primary transition-all shadow-sm">
+                                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/>
+                                      </svg>
+                                    </button>
+                                  )}
+                                  {/* Delete — on any message */}
+                                  {m.id && (
+                                    <button onClick={() => handleAdminDelete(m.id!)}
+                                      title="Delete message" className="w-6 h-6 bg-[var(--card-bg)] border border-[var(--border-c)] rounded-lg flex items-center justify-center text-[var(--text-s)] hover:text-red hover:border-red transition-all shadow-sm">
+                                      <Trash2 size={10} />
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                       <div className="p-4 border-t border-[var(--border-c)]">
                         {replyError && <div className="mb-2 px-3 py-2 bg-red/10 border border-red/20 rounded-xl text-[10px] font-black text-red">{replyError}</div>}
+                        {/* Reply preview bar */}
+                        {adminReplyTo && (
+                          <div className="mb-2 flex items-center gap-2 bg-primary/8 border border-primary/20 rounded-xl px-3 py-2">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-primary flex-shrink-0">
+                              <polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/>
+                            </svg>
+                            <span className="text-[9px] font-black text-primary uppercase tracking-widest flex-shrink-0">Replying to user</span>
+                            <span className="text-[9px] font-bold text-[var(--text-s)] truncate flex-1">{adminReplyTo.content}</span>
+                            <button onClick={() => setAdminReplyTo(null)} className="text-[var(--text-s)] hover:text-red transition-colors flex-shrink-0">
+                              <X size={12} />
+                            </button>
+                          </div>
+                        )}
                         <div className="flex gap-3">
-                          <input type="text" placeholder="Type a reply..." value={replyText}
+                          <input id="admin-reply-input" type="text" placeholder="Type a reply..." value={replyText}
                             onChange={e => setReplyText(e.target.value)}
                             onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSendReply()}
                             disabled={isSendingReply}
@@ -1007,13 +1060,13 @@ const AdminDashboard: React.FC = () => {
                 {selectedOrder.items.map(item => (
                   <div key={item.id} className="flex justify-between items-center text-xs">
                     <span className="font-bold text-[var(--text-s)] truncate max-w-[180px]">{item.productName} <span className="font-black">×{item.quantity}</span></span>
-                    <span className="font-black text-[var(--text-p)]">${Number(item.subtotal).toFixed(2)}</span>
+                    <span className="font-black text-[var(--text-p)]">RWF {Number(item.subtotal).toLocaleString('en-RW')}</span>
                   </div>
                 ))}
               </div>
               <div className="flex justify-between items-center border-t border-[var(--border-c)] pt-4">
                 <span className="font-black italic text-base">Total</span>
-                <span className="font-black text-primary text-xl">${Number(selectedOrder.totalPrice).toFixed(2)}</span>
+                <span className="font-black text-primary text-xl">RWF {Number(selectedOrder.totalPrice).toLocaleString('en-RW')}</span>
               </div>
             </motion.div>
           </div>

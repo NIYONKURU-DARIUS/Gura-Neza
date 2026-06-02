@@ -66,7 +66,7 @@ const Dashboard: React.FC = () => {
                 <Wallet size={26} color="rgba(255,255,255,0.5)" />
               </div>
               <h2 style={{ fontSize: '2.8rem', fontWeight: 900, color: '#ffffff', marginBottom: '0.25rem', fontStyle: 'italic', letterSpacing: '-1px' }}>
-                ${(user?.walletBalance ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                RWF {(user?.walletBalance ?? 0).toLocaleString('en-RW')}
               </h2>
               <p style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.55)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em' }}>
                 Available balance
@@ -176,7 +176,7 @@ const Dashboard: React.FC = () => {
                       t.type === 'DEBIT' ? 'text-red' : 'text-primary'
                     }`}
                   >
-                    {t.type === 'DEBIT' ? '-' : '+'}${Number(t.amount).toFixed(2)}
+                    {t.type === 'DEBIT' ? '-' : '+'}RWF {Number(t.amount).toLocaleString('en-RW')}
                   </span>
                 </div>
               ))

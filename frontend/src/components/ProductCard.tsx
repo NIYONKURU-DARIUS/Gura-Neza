@@ -138,7 +138,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product: initialProduct }) =>
             <div className="flex flex-col">
               <span className="text-[10px] text-[var(--text-s)] font-black uppercase tracking-[0.2em] mb-1">Price</span>
               <span className="text-2xl font-mono-price font-black text-primary italic">
-                ${product.price ? product.price.toFixed(2) : '0.00'}
+                {product.price ? `RWF ${product.price.toLocaleString('en-RW')}` : 'RWF 0'}
               </span>
             </div>
 

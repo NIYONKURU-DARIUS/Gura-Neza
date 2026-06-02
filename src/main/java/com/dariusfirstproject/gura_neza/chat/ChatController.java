@@ -33,7 +33,7 @@ public class ChatController {
 
     @PostMapping("/send")
     public ResponseEntity<ChatMessageDto> sendMessage(@RequestBody Map<String, String> body) {
-        return ResponseEntity.ok(chatService.userSendMessage(body.get("content")));
+        return ResponseEntity.ok(chatService.userSendMessage(body.get("content"), body.get("replyToContent")));
     }
 
     @GetMapping("/history")
@@ -79,7 +79,14 @@ public class ChatController {
     public ResponseEntity<ChatMessageDto> adminReply(
             @PathVariable Long userId,
             @RequestBody Map<String, String> body) {
-        return ResponseEntity.ok(chatService.adminSendMessage(userId, body.get("content")));
+        return ResponseEntity.ok(chatService.adminSendMessage(userId, body.get("content"), body.get("replyToContent")));
+    }
+
+    @DeleteMapping("/admin/message/{id}")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public ResponseEntity<Void> adminDeleteMessage(@PathVariable Long id) {
+        chatService.adminDeleteMessage(id);
+        return ResponseEntity.noContent().build();
     }
 
     // ── USER edit / delete ────────────────────────────────────────────────────

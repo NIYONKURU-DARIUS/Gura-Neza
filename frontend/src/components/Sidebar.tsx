@@ -85,7 +85,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           <div>
             <div className="flex justify-between items-center mb-3 text-[9px] font-black uppercase text-[var(--text-s)]">
               <span>Price Ceiling</span>
-              <span className="text-primary font-mono">${maxPrice.toLocaleString()}</span>
+              <span className="text-primary font-mono">RWF {maxPrice.toLocaleString('en-RW')}</span>
             </div>
             <div className="relative h-5 flex items-center">
               {/* Track background */}
@@ -123,8 +123,8 @@ const Sidebar: React.FC<SidebarProps> = ({
               />
             </div>
             <div className="flex justify-between text-[8px] font-black text-[var(--text-s)] mt-1 opacity-50">
-              <span>$0</span>
-              <span>${absoluteMaxPrice.toLocaleString()}</span>
+              <span>RWF 0</span>
+              <span>RWF {absoluteMaxPrice.toLocaleString('en-RW')}</span>
             </div>
           </div>
 
@@ -184,7 +184,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             <div className="pt-3 border-t border-[var(--border-c)] flex flex-wrap gap-1.5">
               {maxPrice < absoluteMaxPrice && (
                 <span className="text-[8px] font-black bg-primary/10 text-primary px-2 py-1 rounded-full border border-primary/20">
-                  ≤ ${maxPrice.toLocaleString()}
+                  ≤ RWF {maxPrice.toLocaleString('en-RW')}
                 </span>
               )}
               {trendingFirst && (

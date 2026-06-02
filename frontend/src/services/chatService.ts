@@ -10,9 +10,12 @@ export interface ChatMessage {
   userName?: string;
   senderRole: 'USER' | 'ADMIN';
   content: string;
-  sentAt: string; // always normalized to ISO string by parseSentAt()
+  sentAt: string;
   readByAdmin?: boolean;
   edited?: boolean;
+  messageType?: string;
+  voiceUrl?: string;
+  replyToContent?: string;
 }
 
 /**
@@ -118,19 +121,17 @@ class ChatService {
       });
     }
   }
-
-  async adminReply(userId: number, content: string): Promise<ChatMessage> {
-    // Always use REST — reliable regardless of WebSocket state
-    const response = await api.post(`/chat/admin/reply/${userId}`, { content });
+  async adminReply(userId: number, content: string, replyToContent?: string): Promise<ChatMessage> {
+    const response = await api.post(`/chat/admin/reply/${userId}`, { content, replyToContent });
     const msg = { ...response.data, sentAt: parseSentAt(response.data.sentAt) };
-    // Also publish via WebSocket if connected (for real-time push to user)
     if (this.client?.connected) {
-      this.client.publish({
-        destination: '/app/chat.reply',
-        body: JSON.stringify({ userId, content }),
-      });
+      this.client.publish({ destination: '/app/chat.reply', body: JSON.stringify({ userId, content }) });
     }
     return msg;
+  }
+
+  async adminDeleteMessage(messageId: number): Promise<void> {
+    await api.delete(`/chat/admin/message/${messageId}`);
   }
 
   disconnect() {

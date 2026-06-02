@@ -63,7 +63,8 @@ const Checkout: React.FC = () => {
         if (user) setUser({ ...user, walletBalance: nb });
       } catch { /* non-critical */ }
       sayOrderPlaced(user?.name);
-      setIsSuccess(true);
+      // Delay success state so speech isn't cancelled by re-render
+      setTimeout(() => setIsSuccess(true), 400);
     } catch (err: any) {
       const msg = err.response?.data?.message || err.response?.data || err.message || 'Failed to place order.';
       setError(typeof msg === 'string' ? msg : JSON.stringify(msg));
@@ -278,7 +279,7 @@ const Checkout: React.FC = () => {
                     <p className="text-base font-black text-[var(--text-p)] italic tracking-tighter mb-1">Gura Wallet</p>
                     <p className="text-xs font-bold text-[var(--text-s)] mb-4">Instant deduction at checkout</p>
                     <div className={`text-3xl font-black italic tracking-tighter ${paymentMethod === 'WALLET' ? 'text-primary' : 'text-[var(--text-p)]'}`}>
-                      ${walletBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      RWF {walletBalance.toLocaleString('en-RW')}
                     </div>
                     <p className="text-[9px] font-bold text-[var(--text-s)] mt-1 uppercase tracking-widest">Available Balance</p>
                   </button>
@@ -305,7 +306,7 @@ const Checkout: React.FC = () => {
                     </div>
                     <p className="text-base font-black text-[var(--text-p)] italic tracking-tighter mb-1">Pay on Delivery</p>
                     <p className="text-xs font-bold text-[var(--text-s)] mb-4">No charge until delivered</p>
-                    <div className="text-3xl font-black italic tracking-tighter text-[var(--text-s)]">$0.00</div>
+                    <div className="text-3xl font-black italic tracking-tighter text-[var(--text-s)]">RWF 0</div>
                     <p className="text-[9px] font-bold text-[var(--text-s)] mt-1 uppercase tracking-widest">Due Now</p>
                   </button>
                 </div>
@@ -318,17 +319,17 @@ const Checkout: React.FC = () => {
                       className="bg-[var(--bg-main)] rounded-[2rem] p-7 space-y-4 border border-[var(--border-c)]">
                       <div className="flex justify-between items-center">
                         <span className="font-black uppercase text-[8px] tracking-[0.2em] text-[var(--text-s)]">Wallet Balance</span>
-                        <span className="font-black text-lg text-[var(--text-p)] tracking-tighter">${walletBalance.toFixed(2)}</span>
+                        <span className="font-black text-lg text-[var(--text-p)] tracking-tighter">RWF {walletBalance.toLocaleString('en-RW')}</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="font-black uppercase text-[8px] tracking-[0.2em] text-[var(--text-s)]">Order Total</span>
-                        <span className="font-black text-lg text-red tracking-tighter">− ${total.toFixed(2)}</span>
+                        <span className="font-black text-lg text-red tracking-tighter">− RWF {total.toLocaleString('en-RW')}</span>
                       </div>
                       <div className="h-px bg-[var(--border-c)]" />
                       <div className="flex justify-between items-center">
                         <span className="text-xl font-black italic tracking-tighter text-[var(--text-p)]">Remaining</span>
                         <span className={`font-black text-3xl italic tracking-tighter ${isWalletInsufficient ? 'text-red' : 'text-primary'}`}>
-                          ${remainingBalance.toFixed(2)}
+                          RWF {remainingBalance.toLocaleString('en-RW')}
                         </span>
                       </div>
                       {isWalletInsufficient && (
@@ -350,7 +351,7 @@ const Checkout: React.FC = () => {
                       className="flex items-start gap-4 bg-amber/8 border border-amber/20 rounded-[2rem] px-7 py-5">
                       <Clock size={20} className="text-amber flex-shrink-0 mt-0.5" />
                       <p className="text-sm font-bold text-amber leading-snug">
-                        No payment required now. The full amount of <strong>${total.toFixed(2)}</strong> will be collected when your order is delivered.
+                        No payment required now. The full amount of <strong>RWF {total.toLocaleString('en-RW')}</strong> will be collected when your order is delivered.
                       </p>
                     </motion.div>
                   )}
@@ -402,11 +403,11 @@ const Checkout: React.FC = () => {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-black text-[var(--text-p)] truncate italic tracking-tighter">{item.product.name}</p>
                       <p className="text-[10px] font-bold text-[var(--text-s)] mt-0.5 uppercase tracking-widest">
-                        ${Number(item.product.price).toFixed(2)} × {item.quantity}
+                        RWF {Number(item.product.price).toLocaleString('en-RW')} × {item.quantity}
                       </p>
                     </div>
                     <span className="font-black text-sm text-primary italic flex-shrink-0">
-                      ${(Number(item.product.price) * item.quantity).toFixed(2)}
+                      RWF {(Number(item.product.price) * item.quantity).toLocaleString('en-RW')}
                     </span>
                   </div>
                 ))}
@@ -416,7 +417,7 @@ const Checkout: React.FC = () => {
               <div className="space-y-4 mb-8">
                 <div className="flex justify-between items-center text-[var(--text-s)]">
                   <span className="font-black uppercase text-[8px] tracking-[0.2em]">Merchandise Subtotal</span>
-                  <span className="text-lg font-black text-[var(--text-p)] tracking-tighter">${total.toFixed(2)}</span>
+                  <span className="text-lg font-black text-[var(--text-p)] tracking-tighter">RWF {total.toLocaleString('en-RW')}</span>
                 </div>
                 <div className="flex justify-between items-center text-[var(--text-s)]">
                   <span className="font-black uppercase text-[10px] tracking-[0.2em]">Logistics &amp; Delivery</span>
@@ -429,7 +430,7 @@ const Checkout: React.FC = () => {
                   <span className="text-2xl font-black italic tracking-tighter">Total Due</span>
                   <div className="text-right">
                     <span className="text-5xl font-black text-primary italic tracking-tighter leading-none block mb-1">
-                      ${total.toFixed(2)}
+                      RWF {total.toLocaleString('en-RW')}
                     </span>
                     <span className="text-[8px] font-black uppercase tracking-widest opacity-40">Local taxes included</span>
                   </div>

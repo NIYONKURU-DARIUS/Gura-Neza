@@ -190,13 +190,13 @@ const OrderDetail: React.FC = () => {
                         {item.productName}
                       </h4>
                       <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">
-                        Qty: {item.quantity} &nbsp;·&nbsp; ${Number(item.price).toFixed(2)} each
+                        Qty: {item.quantity} &nbsp;·&nbsp; RWF {Number(item.price).toLocaleString('en-RW')} each
                       </span>
                     </div>
 
                     {/* Subtotal */}
                     <div className="font-mono-price font-black text-primary text-lg italic flex-shrink-0">
-                      ${Number(item.subtotal).toFixed(2)}
+                      RWF {Number(item.subtotal).toLocaleString('en-RW')}
                     </div>
                   </div>
                 ))}
@@ -212,7 +212,7 @@ const OrderDetail: React.FC = () => {
               <div className="space-y-3 mb-6 text-sm font-bold text-[var(--text-s)]">
                 <div className="flex justify-between">
                   <span>Subtotal</span>
-                  <span className="text-[var(--text-p)]">${Number(order.totalPrice).toFixed(2)}</span>
+                  <span className="text-[var(--text-p)]">RWF {Number(order.totalPrice).toLocaleString('en-RW')}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span>Delivery</span>
@@ -227,7 +227,7 @@ const OrderDetail: React.FC = () => {
               <div className="flex justify-between items-end mb-6">
                 <span className="text-base font-black italic">Total</span>
                 <span className="text-3xl font-mono-price font-black text-primary italic leading-none">
-                  ${Number(order.totalPrice).toFixed(2)}
+                  RWF {Number(order.totalPrice).toLocaleString('en-RW')}
                 </span>
               </div>
 

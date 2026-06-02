@@ -112,7 +112,7 @@ const Orders: React.FC = () => {
                     <div className="text-left md:text-right">
                       <span className="text-[10px] font-black text-[var(--text-s)] uppercase tracking-widest block mb-1">Paid Total</span>
                       <span className="text-2xl font-mono-price font-black text-primary italic leading-none">
-                        ${Number(order.totalPrice).toFixed(2)}
+                        RWF {Number(order.totalPrice).toLocaleString('en-RW')}
                       </span>
                     </div>
                     <div className="flex gap-2">

@@ -464,17 +464,17 @@ const Welcome: React.FC = () => {
               <motion.div
                 animate={{ y: [0, -6, 0] }}
                 transition={{ repeat: Infinity, duration: 3, ease: 'easeInOut' }}
-                className={`absolute -top-4 -right-4 rounded-2xl px-3 py-2 shadow-xl flex items-center gap-2 ${darkMode ? 'bg-white/10 backdrop-blur-md border border-white/10' : 'bg-white border border-gray-100'}`}
+                className={`absolute -top-4 -right-4 rounded-full px-4 py-2 shadow-xl flex items-center gap-2 ${darkMode ? 'bg-white/10 backdrop-blur-md border border-white/10' : 'bg-white border border-gray-100'}`}
               >
-                <ShoppingCart size={13} className="text-primary" />
+                <ShoppingCart size={12} className="text-primary" />
                 <span className={`text-[9px] font-black uppercase tracking-widest ${darkMode ? 'text-white/80' : 'text-gray-700'}`}>890+ Items</span>
               </motion.div>
               <motion.div
                 animate={{ y: [0, 6, 0] }}
                 transition={{ repeat: Infinity, duration: 3.5, ease: 'easeInOut', delay: 0.5 }}
-                className="absolute -bottom-4 -left-4 bg-primary rounded-2xl px-3 py-2 shadow-xl flex items-center gap-2"
+                className="absolute -bottom-4 -left-4 bg-primary rounded-full px-4 py-2 shadow-xl flex items-center gap-2"
               >
-                <Zap size={13} className="text-white" />
+                <Zap size={12} className="text-white" />
                 <span className="text-[9px] font-black text-white uppercase tracking-widest">Fast Delivery</span>
               </motion.div>
             </motion.div>
@@ -573,38 +573,46 @@ const Welcome: React.FC = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                whileHover={{ y: -8, scale: 1.02 }}
+                whileHover={{ y: -10, scale: 1.03 }}
                 className="group relative cursor-pointer"
               >
                 <Link to={token ? '/products' : '/login'}>
-                  {/* Pill-shaped tall card — no border, pure shadow */}
-                  <div className="relative h-[360px] rounded-[3rem] overflow-hidden shadow-xl shadow-black/10 group-hover:shadow-2xl group-hover:shadow-black/20 transition-all duration-500">
+                  {/* Asymmetric tall card — first card taller for visual rhythm */}
+                  <div className={`relative overflow-hidden shadow-xl shadow-black/10 group-hover:shadow-2xl group-hover:shadow-black/25 transition-all duration-700 ${i % 2 === 0 ? 'h-[400px] rounded-[2.5rem]' : 'h-[340px] rounded-[3.5rem]'}`}>
                     <img
                       src={cat.image}
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-115"
                       alt={cat.name}
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
+                    {/* Multi-layer overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-br from-transparent to-black/30" />
                     <div
-                      className="absolute inset-0 opacity-0 group-hover:opacity-30 transition-opacity duration-500"
-                      style={{ background: `radial-gradient(circle at 50% 100%, ${cat.accent}, transparent 70%)` }}
+                      className="absolute inset-0 opacity-0 group-hover:opacity-40 transition-opacity duration-700"
+                      style={{ background: `radial-gradient(ellipse at 50% 120%, ${cat.accent}, transparent 65%)` }}
                     />
-                    <div className="absolute inset-0 p-7 flex flex-col justify-between">
-                      <div className="flex justify-between items-start">
-                        <span className="text-[9px] font-black uppercase tracking-[0.3em] text-white/60 bg-white/10 backdrop-blur-md px-4 py-1.5 rounded-full">
-                          {cat.tag}
-                        </span>
-                        {/* Circle icon — no more square */}
-                        <div className="w-9 h-9 bg-white/15 backdrop-blur-md rounded-full flex items-center justify-center text-white group-hover:bg-white/25 transition-all">
-                          {React.cloneElement(cat.icon as React.ReactElement<any>, { size: 16 })}
-                        </div>
+
+                    {/* Top row */}
+                    <div className="absolute top-5 left-5 right-5 flex justify-between items-start">
+                      <span className="text-[8px] font-black uppercase tracking-[0.35em] text-white/70 bg-white/10 backdrop-blur-xl px-3 py-1 rounded-full border border-white/10">
+                        {cat.tag}
+                      </span>
+                      <div className="w-8 h-8 bg-white/10 backdrop-blur-xl rounded-full flex items-center justify-center text-white border border-white/10 group-hover:bg-white/20 transition-all">
+                        {React.cloneElement(cat.icon as React.ReactElement<any>, { size: 14 })}
                       </div>
-                      <div>
-                        <p className="text-white/40 text-[10px] font-black uppercase tracking-widest mb-1">{cat.count}</p>
-                        <h3 className="text-2xl font-black text-white italic tracking-tighter mb-3">{cat.name}</h3>
-                        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest"
-                          style={{ color: cat.accent }}>
-                          Browse <ArrowRight size={10} className="group-hover:translate-x-1 transition-transform" />
+                    </div>
+
+                    {/* Bottom content */}
+                    <div className="absolute bottom-0 left-0 right-0 p-6">
+                      {/* Glass info strip */}
+                      <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl px-5 py-4">
+                        <p className="text-white/40 text-[9px] font-black uppercase tracking-widest mb-1">{cat.count}</p>
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-xl font-black text-white italic tracking-tighter">{cat.name}</h3>
+                          <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-white/20 transition-all"
+                            style={{ color: cat.accent }}>
+                            <ArrowRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -650,17 +658,31 @@ const Welcome: React.FC = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                whileHover={{ y: -6 }}
-                className={`group relative ${cardBg} rounded-[2.5rem] p-8 transition-all duration-500 overflow-hidden shadow-sm hover:shadow-xl`}
+                whileHover={{ y: -8 }}
+                className="group relative overflow-hidden transition-all duration-500"
+                style={{ borderRadius: i % 2 === 0 ? '2rem 3.5rem 2rem 3.5rem' : '3.5rem 2rem 3.5rem 2rem' }}
               >
-                {/* Gradient glow on hover — no border */}
-                <div className={`absolute inset-0 opacity-0 group-hover:opacity-8 transition-opacity duration-500 bg-gradient-to-br ${f.color} rounded-[2.5rem]`} />
-                {/* Circle icon */}
-                <div className={`w-14 h-14 rounded-full bg-gradient-to-br ${f.color} flex items-center justify-center text-white mb-6 shadow-xl`}>
-                  {f.icon}
+                {/* Base layer */}
+                <div className={`absolute inset-0 bg-gradient-to-br ${f.color} opacity-[0.07] group-hover:opacity-[0.14] transition-opacity duration-500`} />
+                <div className={`relative ${cardBg} border ${cardBorder} h-full p-8 transition-all duration-500 group-hover:shadow-2xl`}
+                  style={{ borderRadius: 'inherit' }}>
+
+                  {/* Floating icon orb */}
+                  <div className="relative mb-7">
+                    <div className={`w-16 h-16 rounded-[1.5rem] bg-gradient-to-br ${f.color} flex items-center justify-center text-white shadow-2xl`}
+                      style={{ boxShadow: `0 12px 32px -8px ${f.color.includes('emerald') ? '#10b981' : f.color.includes('blue') ? '#3b82f6' : f.color.includes('violet') ? '#8b5cf6' : '#f59e0b'}40` }}>
+                      {f.icon}
+                    </div>
+                    {/* Subtle reflection dot */}
+                    <div className={`absolute -top-1 -right-1 w-3 h-3 rounded-full bg-gradient-to-br ${f.color} opacity-40 blur-sm`} />
+                  </div>
+
+                  <h3 className={`text-lg font-black ${text} italic tracking-tighter mb-3`}>{f.title}</h3>
+                  <p className={`${textMuted} font-bold text-xs leading-relaxed`}>{f.desc}</p>
+
+                  {/* Bottom accent line */}
+                  <div className={`absolute bottom-0 left-8 right-8 h-px bg-gradient-to-r ${f.color} opacity-0 group-hover:opacity-30 transition-opacity duration-500`} />
                 </div>
-                <h3 className={`text-lg font-black ${text} italic tracking-tighter mb-3`}>{f.title}</h3>
-                <p className={`${textMuted} font-bold text-xs leading-relaxed`}>{f.desc}</p>
               </motion.div>
             ))}
           </div>
@@ -674,52 +696,107 @@ const Welcome: React.FC = () => {
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="relative rounded-[2.5rem] overflow-hidden bg-gradient-to-br from-primary via-green-700 to-emerald-900 p-12 sm:p-20"
+            className="relative overflow-hidden"
+            style={{ borderRadius: '2rem 4rem 2rem 4rem' }}
           >
-            {/* Background pattern */}
-            <div className="absolute inset-0 opacity-10"
+            {/* ── Background layers ── */}
+            <div className="absolute inset-0 bg-gradient-to-br from-[#1a4d1e] via-[#1e5c22] to-[#0d2e10]" />
+
+            {/* Mesh grain overlay */}
+            <div className="absolute inset-0 opacity-[0.06]"
               style={{
-                backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)',
-                backgroundSize: '40px 40px',
+                backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
+                backgroundSize: '24px 24px',
               }}
             />
-            {/* Orbs */}
-            <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-black/20 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2" />
 
-            <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-10">
-              <div className="text-center lg:text-left">
-                <div className="flex items-center gap-2 mb-4 justify-center lg:justify-start">
-                  <TrendingUp size={16} className="text-white/60" />
-                  <span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/60">Limited Time</span>
+            {/* Big off-center orbs for depth */}
+            <div className="absolute -top-24 -left-16 w-80 h-80 bg-primary/30 rounded-full blur-[80px]" />
+            <div className="absolute -bottom-20 right-20 w-96 h-96 bg-emerald-400/15 rounded-full blur-[100px]" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-green-900/60 rounded-full blur-3xl" />
+
+            {/* Diagonal slash accent */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              <div className="absolute top-0 right-[30%] w-px h-full bg-white/5 rotate-[20deg] origin-top scale-150" />
+              <div className="absolute top-0 right-[55%] w-px h-full bg-white/[0.03] rotate-[20deg] origin-top scale-150" />
+            </div>
+
+            {/* ── Content ── */}
+            <div className="relative z-10 p-10 sm:p-14 lg:p-16">
+              <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between gap-12">
+
+                {/* Left — staggered text block */}
+                <div className="flex-1">
+                  {/* Eyebrow */}
+                  <div className="flex items-center gap-2 mb-5">
+                    <TrendingUp size={13} className="text-white/40" />
+                    <span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40">Limited Time</span>
+                  </div>
+
+                  {/* Headline — broken into two sizes for rhythm */}
+                  <div className="mb-5">
+                    <span className={`block font-black italic tracking-tighter leading-[0.88] text-white/30`}
+                      style={{ fontSize: 'clamp(1rem, 2.5vw, 1.4rem)' }}>
+                      Join
+                    </span>
+                    <span className={`block font-black italic tracking-tighter leading-[0.88] text-white`}
+                      style={{ fontSize: 'clamp(3rem, 7vw, 5.5rem)' }}>
+                      12,000+
+                    </span>
+                    <span className={`block font-black italic tracking-tighter leading-[0.88] text-white/80`}
+                      style={{ fontSize: 'clamp(1.8rem, 4.5vw, 3.5rem)' }}>
+                      Smart Shoppers.
+                    </span>
+                  </div>
+
+                  <p className="text-white/40 font-bold text-sm max-w-xs leading-relaxed">
+                    Free account. Instant access to exclusive deals, wallet rewards, and priority support.
+                  </p>
                 </div>
-                <h2 className="text-4xl sm:text-6xl font-black text-white italic tracking-tighter leading-[0.9] mb-4">
-                  Join 12,000+
-                  <br />
-                  Smart Shoppers.
-                </h2>
-                <p className="text-white/60 font-bold text-sm max-w-md">
-                  Create your free account today and get instant access to exclusive deals, wallet rewards, and priority support.
-                </p>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-4 flex-shrink-0">
-                <Link to="/register">
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="bg-white text-primary font-black text-sm uppercase tracking-widest px-10 py-5 rounded-full shadow-2xl hover:shadow-white/20 transition-all"
-                  >
-                    Create Free Account
-                  </motion.button>
-                </Link>
-                <Link to="/login">
-                  <motion.button
-                    whileHover={{ scale: 1.03 }}
-                    className="bg-white/10 backdrop-blur-md border border-white/20 text-white font-black text-sm uppercase tracking-widest px-10 py-5 rounded-full hover:bg-white/20 transition-all"
-                  >
-                    Sign In
-                  </motion.button>
-                </Link>
+
+                {/* Right — stacked cards buttons + stat pills */}
+                <div className="flex flex-col gap-5 w-full lg:w-auto lg:min-w-[280px]">
+
+                  {/* Stat pills row */}
+                  <div className="flex gap-3 flex-wrap">
+                    {[
+                      { val: '48h', label: 'Delivery' },
+                      { val: '99%', label: 'Satisfied' },
+                      { val: 'Free', label: 'Signup' },
+                    ].map((s, i) => (
+                      <div key={i} className="flex items-center gap-2 bg-white/8 backdrop-blur-sm border border-white/10 rounded-full px-4 py-2">
+                        <span className="text-sm font-black text-white italic">{s.val}</span>
+                        <span className="text-[9px] font-black uppercase tracking-widest text-white/40">{s.label}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* CTA buttons — vertical stack, different sizes */}
+                  <div className="flex flex-col gap-3">
+                    <Link to="/register" className="w-full">
+                      <motion.button
+                        whileHover={{ scale: 1.02, x: 4 }}
+                        whileTap={{ scale: 0.97 }}
+                        className="w-full bg-white text-primary font-black uppercase tracking-widest py-5 shadow-2xl shadow-black/30 hover:shadow-white/10 transition-all flex items-center justify-between px-7"
+                        style={{ borderRadius: '1rem 2.5rem 1rem 2.5rem', fontSize: '0.72rem' }}
+                      >
+                        Create Free Account
+                        <ArrowRight size={16} />
+                      </motion.button>
+                    </Link>
+                    <Link to="/login" className="w-full">
+                      <motion.button
+                        whileHover={{ scale: 1.02, x: 4 }}
+                        whileTap={{ scale: 0.97 }}
+                        className="w-full bg-white/8 backdrop-blur-sm border border-white/15 text-white font-black uppercase tracking-widest py-4 hover:bg-white/15 transition-all flex items-center justify-between px-7"
+                        style={{ borderRadius: '2.5rem 1rem 2.5rem 1rem', fontSize: '0.72rem' }}
+                      >
+                        Sign In
+                        <ArrowRight size={14} className="opacity-40" />
+                      </motion.button>
+                    </Link>
+                  </div>
+                </div>
               </div>
             </div>
           </motion.div>
@@ -752,7 +829,7 @@ const Welcome: React.FC = () => {
             </motion.h2>
           </div>
 
-          {/* Testimonial cards — pill/bubble style, no border */}
+          {/* Testimonial cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {testimonials.map((t, i) => (
               <motion.div
@@ -761,29 +838,48 @@ const Welcome: React.FC = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.12 }}
-                className={`relative rounded-[2.5rem] p-8 transition-all duration-500 ${
+                className={`relative overflow-hidden transition-all duration-500 ${
                   activeTestimonial === i
-                    ? 'bg-primary/8 shadow-2xl shadow-primary/10 scale-[1.02]'
-                    : `${cardBg} shadow-md hover:shadow-xl`
+                    ? 'shadow-2xl shadow-primary/15 scale-[1.03]'
+                    : 'shadow-md hover:shadow-xl hover:scale-[1.01]'
                 }`}
+                style={{ borderRadius: i === 1 ? '3rem 1.5rem 3rem 1.5rem' : '1.5rem 3rem 1.5rem 3rem' }}
               >
-                {/* Stars */}
-                <div className="flex gap-1 mb-6">
-                  {[...Array(t.rating)].map((_, j) => (
-                    <Star key={j} size={14} className="text-amber-400 fill-amber-400" />
-                  ))}
-                </div>
-                <p className={`${textSub} font-bold text-sm leading-relaxed mb-8 italic`}>
-                  "{t.text}"
-                </p>
-                <div className="flex items-center gap-4">
-                  {/* Circle avatar — no more square */}
-                  <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center text-primary font-black text-sm">
-                    {t.avatar}
+                {/* Active glow */}
+                {activeTestimonial === i && (
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-emerald-500/5" style={{ borderRadius: 'inherit' }} />
+                )}
+                <div className={`relative ${cardBg} border ${activeTestimonial === i ? 'border-primary/20' : cardBorder} p-8 h-full`}
+                  style={{ borderRadius: 'inherit' }}>
+
+                  {/* Quote mark */}
+                  <div className={`text-6xl font-black leading-none mb-3 ${darkMode ? 'text-white/5' : 'text-gray-100'} select-none`}>"</div>
+
+                  {/* Stars */}
+                  <div className="flex gap-1 mb-4 -mt-8">
+                    {[...Array(t.rating)].map((_, j) => (
+                      <Star key={j} size={12} className="text-amber-400 fill-amber-400" />
+                    ))}
                   </div>
-                  <div>
-                    <p className={`${text} font-black text-sm tracking-tight`}>{t.name}</p>
-                    <p className={`${textDim} font-bold text-[10px] uppercase tracking-widest`}>{t.role}</p>
+
+                  <p className={`${textSub} font-bold text-sm leading-relaxed mb-8`}>
+                    {t.text}
+                  </p>
+
+                  <div className="flex items-center gap-3">
+                    {/* Avatar with gradient ring */}
+                    <div className="relative">
+                      <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary to-emerald-600 p-[2px]">
+                        <div className={`w-full h-full rounded-full ${darkMode ? 'bg-[#0d0d0d]' : 'bg-white'}`} />
+                      </div>
+                      <div className="relative w-11 h-11 bg-primary/15 rounded-full flex items-center justify-center text-primary font-black text-sm border-2 border-primary/30">
+                        {t.avatar}
+                      </div>
+                    </div>
+                    <div>
+                      <p className={`${text} font-black text-sm tracking-tight`}>{t.name}</p>
+                      <p className={`${textDim} font-bold text-[9px] uppercase tracking-widest`}>{t.role}</p>
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -808,7 +904,7 @@ const Welcome: React.FC = () => {
       {/* ── STATS SECTION ──────────────────────────────────────────────── */}
       <section className={`py-24 px-4 sm:px-10 ${bgAlt} border-y ${border} transition-colors duration-300`}>
         <div className="max-w-[1400px] mx-auto">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
             {stats.map((s, i) => (
               <motion.div
                 key={i}
@@ -816,13 +912,19 @@ const Welcome: React.FC = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                className="text-center"
+                whileHover={{ y: -4 }}
+                className={`relative overflow-hidden ${cardBg} border ${cardBorder} transition-all duration-500 hover:shadow-xl`}
+                style={{ borderRadius: i % 2 === 0 ? '2.5rem 1rem 2.5rem 1rem' : '1rem 2.5rem 1rem 2.5rem' }}
               >
-                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center text-primary mx-auto mb-4">
-                  {s.icon}
+                {/* Subtle tinted glow */}
+                <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
+                <div className="relative p-8 flex flex-col items-center text-center gap-3">
+                  <div className={`w-10 h-10 rounded-2xl ${darkMode ? 'bg-primary/15' : 'bg-primary/10'} flex items-center justify-center text-primary`}>
+                    {s.icon}
+                  </div>
+                  <h3 className={`text-4xl sm:text-5xl font-black ${text} italic tracking-tighter leading-none`}>{s.value}</h3>
+                  <p className={`${textDim} font-black text-[9px] uppercase tracking-widest`}>{s.label}</p>
                 </div>
-                <h3 className={`text-4xl font-black ${text} italic tracking-tighter mb-1`}>{s.value}</h3>
-                <p className={`${textDim} font-black text-[10px] uppercase tracking-widest`}>{s.label}</p>
               </motion.div>
             ))}
           </div>

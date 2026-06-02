@@ -43,18 +43,36 @@ const pickVoice = (): SpeechSynthesisVoice | null => {
 
 export const speak = (text: string, options?: { rate?: number; pitch?: number; volume?: number }) => {
   if (!('speechSynthesis' in window)) return;
+
+  // Cancel any ongoing speech
   window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  if (!preferredVoice) preferredVoice = pickVoice();
-  if (preferredVoice) utterance.voice = preferredVoice;
-  utterance.lang   = 'en-US';
-  utterance.rate   = options?.rate   ?? 1.05;
-  utterance.pitch  = options?.pitch  ?? 1.0;
-  utterance.volume = options?.volume ?? 1.0;
-  utterance.onstart = () => setSpeaking(true);
-  utterance.onend   = () => setSpeaking(false);
-  utterance.onerror = () => setSpeaking(false);
-  window.speechSynthesis.speak(utterance);
+
+  const doSpeak = () => {
+    const utterance = new SpeechSynthesisUtterance(text);
+    // Always re-pick voice — voices may have loaded since module init
+    const voice = pickVoice();
+    if (voice) utterance.voice = voice;
+    utterance.lang   = 'en-US';
+    utterance.rate   = options?.rate   ?? 1.0;
+    utterance.pitch  = options?.pitch  ?? 1.0;
+    utterance.volume = options?.volume ?? 1.0;
+    utterance.onstart = () => setSpeaking(true);
+    utterance.onend   = () => setSpeaking(false);
+    utterance.onerror = () => setSpeaking(false);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const voices = window.speechSynthesis.getVoices();
+  if (voices.length > 0) {
+    // Voices already loaded — small delay so navigation doesn't interrupt
+    setTimeout(doSpeak, 300);
+  } else {
+    // Voices not yet loaded — wait for them then speak
+    window.speechSynthesis.onvoiceschanged = () => {
+      preferredVoice = pickVoice();
+      setTimeout(doSpeak, 300);
+    };
+  }
 };
 
 if ('speechSynthesis' in window) {

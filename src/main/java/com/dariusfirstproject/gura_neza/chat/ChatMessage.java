@@ -35,16 +35,23 @@ public class ChatMessage {
     private LocalDateTime sentAt;
 
     @Column(nullable = false)
+    @Builder.Default
     private boolean readByAdmin = false;
 
     @Column(nullable = false)
+    @Builder.Default
     private boolean edited = false;
 
     /** "TEXT" or "VOICE" */
     @Column(nullable = false)
+    @Builder.Default
     private String messageType = "TEXT";
 
     /** URL path to the uploaded voice file (null for text messages) */
     @Column
     private String voiceUrl;
+
+    /** Snippet of the message this is replying to (null if not a reply) */
+    @Column(length = 300)
+    private String replyToContent;
 }

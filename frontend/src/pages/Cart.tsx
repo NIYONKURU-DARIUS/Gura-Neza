@@ -101,7 +101,7 @@ const Cart: React.FC = () => {
 
                              <div className="flex-1 flex justify-end items-center gap-2">
                                 <span className="text-xl font-black text-primary italic tracking-tighter">
-                                  ${(item.product.price * item.quantity).toFixed(2)}
+                                  RWF {(item.product.price * item.quantity).toLocaleString('en-RW')}
                                 </span>
                              </div>
                           </div>
@@ -129,7 +129,7 @@ const Cart: React.FC = () => {
               <div className="space-y-4 mb-8">
                 <div className="flex justify-between items-center text-[var(--text-s)]">
                   <span className="font-black uppercase text-[8px] tracking-[0.2em]">Merchandise Subtotal</span>
-                  <span className="text-lg font-black text-[var(--text-p)] tracking-tighter">${subtotal.toFixed(2)}</span>
+                  <span className="text-lg font-black text-[var(--text-p)] tracking-tighter">RWF {subtotal.toLocaleString('en-RW')}</span>
                 </div>
                 <div className="flex justify-between items-center text-[var(--text-s)]">
                   <span className="font-black uppercase text-[10px] tracking-[0.2em]">Logistics & Delivery</span>
@@ -142,7 +142,7 @@ const Cart: React.FC = () => {
                   <span className="text-2xl font-black italic tracking-tighter">Total Due</span>
                   <div className="text-right">
                     <span className="text-6xl font-black text-primary italic tracking-tighter leading-none block mb-1">
-                        ${total.toFixed(2)}
+                        RWF {total.toLocaleString('en-RW')}
                     </span>
                     <span className="text-[8px] font-black uppercase tracking-widest opacity-40">Local taxes included</span>
                   </div>
@@ -159,7 +159,7 @@ const Cart: React.FC = () => {
                     </span>
                   </div>
                   <div className="text-3xl font-black text-primary italic tracking-tighter">
-                    ${user?.walletBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    RWF {user?.walletBalance.toLocaleString('en-RW')}
                   </div>
                   
                   {isInsufficient && (

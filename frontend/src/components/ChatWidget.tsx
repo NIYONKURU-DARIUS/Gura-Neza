@@ -70,6 +70,9 @@ const ChatWidget: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const editInputRef = useRef<HTMLInputElement>(null);
 
+  /* ── Reply state ── */
+  const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
+
   /* ── Voice recording state ── */
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
@@ -207,8 +210,10 @@ const ChatWidget: React.FC = () => {
     const content = inputText.trim();
     if (!content || isSending) return;
     setInputText(''); setIsSending(true); setSendError('');
+    const replySnippet = replyingTo ? replyingTo.content.slice(0, 100) : undefined;
+    setReplyingTo(null);
     try {
-      const response = await api.post('/chat/send', { content });
+      const response = await api.post('/chat/send', { content, replyToContent: replySnippet });
       const sent: ChatMessage = { ...response.data, sentAt: parseSentAt(response.data.sentAt) };
       setMessages(prev => prev.some(m => m.id === sent.id) ? prev : [...prev, sent]);
     } catch (err: any) {
@@ -483,6 +488,14 @@ const ChatWidget: React.FC = () => {
                                 isAdmin ? 'bg-[var(--card-bg)] text-[var(--text-p)] border border-[var(--border-c)] rounded-tl-sm px-4 py-3'
                                         : isVoice ? 'rounded-tr-sm' : 'bg-primary text-white rounded-tr-sm shadow-md shadow-primary/20 px-4 py-3'
                               }`}>
+                                {/* Reply preview strip */}
+                                {msg.replyToContent && (
+                                  <div className={`text-[9px] font-black mb-2 px-2 py-1.5 rounded-lg border-l-2 truncate ${
+                                    isAdmin ? 'bg-[var(--bg-main)] border-primary/50 text-[var(--text-s)]' : 'bg-white/15 border-white/50 text-white/70'
+                                  }`}>
+                                    ↩ {msg.replyToContent}
+                                  </div>
+                                )}
                                 {isVoice && msg.voiceUrl
                                   ? <VoicePlayer src={msg.voiceUrl} isOwn={!isAdmin} />
                                   : msg.content}
@@ -495,6 +508,20 @@ const ChatWidget: React.FC = () => {
                                   </div>
                                 )}
                               </div>
+
+                              {/* Reply button — on admin messages */}
+                              {isAdmin && (
+                                <div className="absolute -right-9 top-1/2 -translate-y-1/2 hidden group-hover/msg:flex">
+                                  <button
+                                    onClick={() => { setReplyingTo(msg); setTimeout(() => document.getElementById('chat-input')?.focus(), 50); }}
+                                    title="Reply to this message"
+                                    className="w-6 h-6 bg-[var(--card-bg)] border border-[var(--border-c)] rounded-lg flex items-center justify-center text-[var(--text-s)] hover:text-primary hover:border-primary transition-all shadow-sm">
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                      <polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/>
+                                    </svg>
+                                  </button>
+                                </div>
+                              )}
                               {!isAdmin && msg.id && !isVoice && (
                                 <div className="absolute -left-16 top-1/2 -translate-y-1/2 hidden group-hover/msg:flex items-center gap-1">
                                   <button onClick={() => handleStartEdit(msg)} title="Edit"
@@ -536,6 +563,19 @@ const ChatWidget: React.FC = () => {
                 {sendError && (
                   <div className="mb-2 px-3 py-2 bg-red/10 border border-red/20 rounded-xl text-[10px] font-black text-red">{sendError}</div>
                 )}
+                {/* Reply preview bar */}
+                {replyingTo && (
+                  <div className="mb-2 flex items-center gap-2 bg-primary/8 border border-primary/20 rounded-xl px-3 py-2">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-primary flex-shrink-0">
+                      <polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/>
+                    </svg>
+                    <span className="text-[9px] font-black text-primary uppercase tracking-widest flex-shrink-0">Replying to Support</span>
+                    <span className="text-[9px] font-bold text-[var(--text-s)] truncate flex-1">{replyingTo.content}</span>
+                    <button onClick={() => setReplyingTo(null)} className="text-[var(--text-s)] hover:text-red transition-colors flex-shrink-0">
+                      <XCircle size={12} />
+                    </button>
+                  </div>
+                )}
                 {/* Recording indicator */}
                 {isRecording && (
                   <div className="mb-2 flex items-center gap-2 px-3 py-2 bg-red/10 border border-red/20 rounded-xl">
@@ -546,7 +586,7 @@ const ChatWidget: React.FC = () => {
                   </div>
                 )}
                 <div className="flex gap-2 items-center bg-[var(--bg-main)] rounded-2xl border border-[var(--border-c)] px-3 py-1.5 focus-within:border-primary transition-colors">
-                  <input type="text" placeholder="Type a message..." value={inputText}
+                  <input type="text" placeholder="Type a message..." value={inputText} id="chat-input"
                     onChange={e => setInputText(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
                     className="flex-1 bg-transparent py-2 text-xs font-bold outline-none text-[var(--text-p)] placeholder:text-[var(--text-s)]"
