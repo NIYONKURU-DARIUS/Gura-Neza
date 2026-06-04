@@ -22,7 +22,6 @@ public class AuthController {
         return new ResponseEntity<>(authService.login(loginRequest), HttpStatus.OK);
     }
 
-    // FIX: endpoint was missing — verification link in registration email was a dead 404
     @GetMapping("/verify")
     public ResponseEntity<String> verifyEmail(@RequestParam String token) {
         return ResponseEntity.ok(authService.verifyEmail(token));

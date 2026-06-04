@@ -34,7 +34,11 @@ public class ChatService {
         User user = getCurrentUser();
 
         // Save file to uploads/voice/
-        String filename = UUID.randomUUID() + ".webm";
+        String originalName = file.getOriginalFilename();
+        String ext = (originalName != null && originalName.contains("."))
+                ? originalName.substring(originalName.lastIndexOf('.'))
+                : ".webm";
+        String filename = UUID.randomUUID() + ext;
         Path uploadDir = Paths.get("uploads/voice");
         try {
             Files.createDirectories(uploadDir);

@@ -103,8 +103,6 @@ public class ProductService {
 
         boolean hasSearch = search != null && !search.isBlank();
         boolean hasCategory = category != null && !category.isBlank() && !category.equalsIgnoreCase("ALL");
-
-        // Parse the category string to the enum — ignore if unrecognised
         Category categoryEnum = null;
         if (hasCategory) {
             try {

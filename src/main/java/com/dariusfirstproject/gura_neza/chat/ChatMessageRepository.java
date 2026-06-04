@@ -10,7 +10,6 @@ import java.util.List;
 @Repository
 public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> {
 
-    // All messages for a specific user's thread, oldest first
     List<ChatMessage> findByUserIdOrderBySentAtAsc(Long userId);
 
     // All users who have sent at least one message (for the admin inbox)

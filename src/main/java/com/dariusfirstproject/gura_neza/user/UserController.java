@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.math.BigDecimal;
 
@@ -75,7 +76,7 @@ public class UserController {
     }
 
     @GetMapping
-    @org.springframework.security.access.prepost.PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<java.util.List<UserResponse>> getAllUsers() {
         return ResponseEntity.ok(userRepository.findAll().stream()
                 .map(u -> UserResponse.builder()

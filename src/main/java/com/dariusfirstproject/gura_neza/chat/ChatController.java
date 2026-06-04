@@ -54,9 +54,12 @@ public class ChatController {
         Path filePath = Paths.get("uploads/voice").resolve(filename).normalize();
         Resource resource = new FileSystemResource(filePath);
         if (!resource.exists()) return ResponseEntity.notFound().build();
+        String contentType = filename.endsWith(".mp4") ? "audio/mp4"
+                           : filename.endsWith(".ogg") ? "audio/ogg"
+                           : "audio/webm";
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + filename + "\"")
-                .contentType(MediaType.parseMediaType("audio/webm"))
+                .contentType(MediaType.parseMediaType(contentType))
                 .body(resource);
     }
 

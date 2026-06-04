@@ -4,7 +4,8 @@ import {
   Users, ShoppingCart, Package, BarChart3, MessageSquare,
   LogOut, Check, Clock, Loader2, Plus, X, DollarSign,
   Send, Truck, Ban, Eye, Edit2, AlertTriangle, TrendingUp,
-  Star, Heart, Menu, Search, Wallet, Trash2
+  Star, Heart, Menu, Search, Wallet, Trash2,
+  Phone, PhoneOff, PhoneCall, Play, Pause, Volume2
 } from 'lucide-react';
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
@@ -19,6 +20,80 @@ import { walletService } from '../services/walletService';
 import type { TopUpRequestDto } from '../services/walletService';
 import { chatService, type ChatInboxItem, type ChatMessage } from '../services/chatService';
 import { getStockInfo, LOW_STOCK_THRESHOLD } from '../services/stockUtils';
+import api from '../services/api';
+
+/* ── Admin Voice Player ───────────────────────────────────────────── */
+const AdminVoicePlayer: React.FC<{ src: string }> = ({ src }) => {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [playing, setPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState(false);
+  const probingRef = useRef(false);
+
+  useEffect(() => {
+    let objectUrl: string | null = null;
+    const path = src.startsWith('/api') ? src.slice(4) : src;
+    api.get(path, { responseType: 'blob' })
+      .then(res => { objectUrl = URL.createObjectURL(res.data); setBlobUrl(objectUrl); })
+      .catch(() => setLoadError(true));
+    return () => { if (objectUrl) URL.revokeObjectURL(objectUrl); };
+  }, [src]);
+
+  const fmt = (s: number) => {
+    if (!isFinite(s) || isNaN(s) || s < 0) return '0:00';
+    return `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+  };
+
+  const toggle = () => {
+    const audio = audioRef.current;
+    if (!audio || !blobUrl) return;
+    if (playing) { audio.pause(); setPlaying(false); }
+    else {
+      if (audio.readyState === 0) audio.load();
+      audio.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
+    }
+  };
+
+  if (loadError) return <span className="text-[9px] font-bold text-[var(--text-s)] opacity-50">🎤 Unavailable</span>;
+
+  return (
+    <div className="flex items-center gap-2 bg-[var(--bg-main)] rounded-xl px-3 py-2 min-w-[160px] border border-[var(--border-c)]">
+      {blobUrl && (
+        <audio ref={audioRef} src={blobUrl}
+          onTimeUpdate={() => setProgress(audioRef.current?.currentTime ?? 0)}
+          onLoadedMetadata={() => {
+            const a = audioRef.current; if (!a) return;
+            if (!isFinite(a.duration)) { probingRef.current = true; a.currentTime = 1e9; }
+            else setDuration(a.duration);
+          }}
+          onSeeked={() => {
+            const a = audioRef.current; if (!a || !probingRef.current) return;
+            probingRef.current = false;
+            if (isFinite(a.duration)) setDuration(a.duration);
+            a.currentTime = 0;
+          }}
+          onEnded={() => { setPlaying(false); setProgress(0); }}
+          onPause={() => setPlaying(false)}
+        />
+      )}
+      <button onClick={toggle} disabled={!blobUrl}
+        className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 disabled:opacity-40">
+        {!blobUrl ? <Loader2 size={10} className="animate-spin" /> : playing ? <Pause size={10} /> : <Play size={10} />}
+      </button>
+      <div className="flex-1 flex flex-col gap-0.5">
+        <div className="h-1 rounded-full overflow-hidden bg-[var(--border-c)]">
+          <div className="h-full bg-primary rounded-full" style={{ width: duration > 0 ? `${(progress / duration) * 100}%` : '0%' }} />
+        </div>
+        <span className="text-[7px] font-black text-[var(--text-s)]">
+          {fmt(progress)} / {duration > 0 && isFinite(duration) ? fmt(duration) : '--:--'}
+        </span>
+      </div>
+      <Volume2 size={9} className="text-[var(--text-s)]" />
+    </div>
+  );
+};
 
 type Section = 'dash' | 'prod' | 'ord' | 'user' | 'chat' | 'topup' | 'likes';
 
@@ -67,6 +142,36 @@ const AdminDashboard: React.FC = () => {
   const chatPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   useEffect(() => { activeChatIdRef.current = activeChatId; }, [activeChatId]);
 
+  // Actuator health
+  const [appHealth, setAppHealth] = useState<'UP' | 'DOWN' | 'loading'>('loading');
+
+  useEffect(() => {
+    fetch('http://localhost:8086/actuator/health')
+      .then(r => r.json())
+      .then(d => setAppHealth(d.status === 'UP' ? 'UP' : 'DOWN'))
+      .catch(() => setAppHealth('DOWN'));
+    // refresh every 30s
+    const t = setInterval(() => {
+      fetch('http://localhost:8086/actuator/health')
+        .then(r => r.json())
+        .then(d => setAppHealth(d.status === 'UP' ? 'UP' : 'DOWN'))
+        .catch(() => setAppHealth('DOWN'));
+    }, 30000);
+    return () => clearInterval(t);
+  }, []);
+
+  // WebRTC call state (admin side)
+  type AdminCallState = 'idle' | 'ringing' | 'active';
+  const [adminCallState, setAdminCallState] = useState<AdminCallState>('idle');
+  const [callerInfo, setCallerInfo] = useState<{ userId: number; userName: string } | null>(null);
+  const [callDuration, setCallDuration] = useState(0);
+  const adminPeerRef = useRef<RTCPeerConnection | null>(null);
+  const adminLocalStreamRef = useRef<MediaStream | null>(null);
+  const adminRemoteAudioRef = useRef<HTMLAudioElement | null>(null);
+  const callTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pendingOfferRef = useRef<RTCSessionDescriptionInit | null>(null);
+  // Stable ref so the WebSocket subscription always calls the latest handler
+  const adminCallSignalHandlerRef = useRef<((signal: any) => void) | null>(null);
   // Product form
   const [showAddModal, setShowAddModal] = useState(false);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
@@ -101,6 +206,10 @@ const AdminDashboard: React.FC = () => {
         chatService.getAdminInbox().then(setInbox);
       });
       chatService.subscribeToInbox(() => chatService.getAdminInbox().then(setInbox));
+      // Subscribe to WebRTC signals directed at admin — use a stable ref so the callback is always current
+      chatService.subscribeToAdminCallSignal((signal) => {
+        adminCallSignalHandlerRef.current?.(signal);
+      });
     }
     const inboxPoll = setInterval(() => chatService.getAdminInbox().then(setInbox), 5000);
     return () => { chatService.disconnect(); clearInterval(inboxPoll); };
@@ -154,6 +263,59 @@ const AdminDashboard: React.FC = () => {
       setMessages(prev => prev.filter(m => m.id !== messageId));
     } catch { /* silent */ }
   };
+
+  /* ── WebRTC call handlers (admin side) ── */
+  const handleAdminCallSignal = async (signal: any) => {
+    if (signal.type === 'CALL_INCOMING') {
+      setCallerInfo({ userId: signal.userId, userName: signal.userName });
+      setAdminCallState('ringing');
+    } else if (signal.type === 'OFFER') {
+      pendingOfferRef.current = signal.sdp;
+    } else if (signal.type === 'ICE' && adminPeerRef.current) {
+      try { await adminPeerRef.current.addIceCandidate(new RTCIceCandidate(signal.candidate)); } catch { /* ignore */ }
+    } else if (signal.type === 'CALL_ENDED') {
+      endAdminCall(false);
+    }
+  };
+  // Keep the ref current so the stable WebSocket callback always calls the latest version
+  adminCallSignalHandlerRef.current = handleAdminCallSignal;
+
+  const answerCall = async () => {
+    if (!callerInfo || !pendingOfferRef.current) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      adminLocalStreamRef.current = stream;
+      const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+      adminPeerRef.current = pc;
+      stream.getTracks().forEach(t => pc.addTrack(t, stream));
+      pc.onicecandidate = e => {
+        if (e.candidate) chatService.sendCallSignal({ type: 'ICE', userId: callerInfo.userId, candidate: e.candidate, direction: 'to_user' });
+      };
+      pc.ontrack = e => {
+        if (!adminRemoteAudioRef.current) adminRemoteAudioRef.current = new Audio();
+        adminRemoteAudioRef.current.srcObject = e.streams[0];
+        adminRemoteAudioRef.current.play().catch(() => {});
+      };
+      await pc.setRemoteDescription(new RTCSessionDescription(pendingOfferRef.current));
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      chatService.sendCallSignal({ type: 'ANSWER', userId: callerInfo.userId, sdp: answer });
+      pendingOfferRef.current = null;
+      setAdminCallState('active');
+      callTimerRef.current = setInterval(() => setCallDuration(d => d + 1), 1000);
+    } catch { endAdminCall(true); }
+  };
+
+  const endAdminCall = (notify = true) => {
+    adminPeerRef.current?.close(); adminPeerRef.current = null;
+    adminLocalStreamRef.current?.getTracks().forEach(t => t.stop()); adminLocalStreamRef.current = null;
+    if (adminRemoteAudioRef.current) { adminRemoteAudioRef.current.srcObject = null; adminRemoteAudioRef.current = null; }
+    if (callTimerRef.current) { clearInterval(callTimerRef.current); callTimerRef.current = null; }
+    if (notify && callerInfo) chatService.sendCallSignal({ type: 'CALL_ENDED', userId: callerInfo.userId, direction: 'to_user' });
+    setAdminCallState('idle'); setCallerInfo(null); setCallDuration(0); pendingOfferRef.current = null;
+  };
+
+  const fmtCallSec = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
   const openAddModal = () => { setEditProduct(null); setProductForm(emptyProduct); setShowAddModal(true); };
   const openEditModal = (p: Product) => {
@@ -299,6 +461,66 @@ const AdminDashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-[var(--bg-main)] font-body flex">
 
+      {/* ── GLOBAL INCOMING CALL OVERLAY ─────────────────────────── */}
+      <AnimatePresence>
+        {adminCallState !== 'idle' && (
+          <motion.div
+            initial={{ opacity: 0, y: -60 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -60 }}
+            transition={{ type: 'spring', damping: 20, stiffness: 280 }}
+            className="fixed top-4 left-1/2 -translate-x-1/2 z-[999] font-body"
+            style={{ minWidth: 'min(420px, calc(100vw - 2rem))' }}
+          >
+            <div className={`flex items-center gap-4 px-5 py-4 rounded-2xl shadow-2xl border ${
+              adminCallState === 'ringing'
+                ? 'bg-[var(--card-bg)] border-amber/40 shadow-amber/10'
+                : 'bg-[var(--card-bg)] border-primary/40 shadow-primary/10'
+            }`}>
+              {/* Animated icon */}
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                adminCallState === 'ringing' ? 'bg-amber/15' : 'bg-primary/15'
+              }`}>
+                <motion.div
+                  animate={adminCallState === 'ringing' ? { rotate: [0, 15, -15, 10, -10, 0] } : { scale: [1, 1.1, 1] }}
+                  transition={{ repeat: Infinity, duration: adminCallState === 'ringing' ? 1 : 2 }}
+                >
+                  {adminCallState === 'ringing'
+                    ? <PhoneCall size={20} className="text-amber" />
+                    : <Phone size={20} className="text-primary" />}
+                </motion.div>
+              </div>
+
+              {/* Text */}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-black text-[var(--text-p)] truncate">
+                  {adminCallState === 'ringing'
+                    ? `${callerInfo?.userName ?? 'A user'} is calling...`
+                    : `On call with ${callerInfo?.userName ?? 'user'}`}
+                </p>
+                <p className={`text-[9px] font-bold uppercase tracking-widest ${
+                  adminCallState === 'ringing' ? 'text-amber' : 'text-primary'
+                }`}>
+                  {adminCallState === 'ringing' ? 'Incoming voice call' : `Duration: ${fmtCallSec(callDuration)}`}
+                </p>
+              </div>
+
+              {/* Action buttons */}
+              {adminCallState === 'ringing' && (
+                <button onClick={answerCall}
+                  className="bg-primary text-white px-4 py-2 rounded-full text-[10px] font-black flex items-center gap-1.5 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/30 flex-shrink-0">
+                  <Phone size={13} /> Answer
+                </button>
+              )}
+              <button onClick={() => endAdminCall(true)}
+                className="bg-red text-white px-4 py-2 rounded-full text-[10px] font-black flex items-center gap-1.5 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-red/30 flex-shrink-0">
+                <PhoneOff size={13} /> {adminCallState === 'ringing' ? 'Decline' : 'End'}
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ── MOBILE OVERLAY ─────────────────────────────────────────── */}
       <AnimatePresence>
         {sidebarOpen && (
@@ -367,6 +589,38 @@ const AdminDashboard: React.FC = () => {
             {/* ── DASHBOARD ─────────────────────────────────────────── */}
             {activeSection === 'dash' && (
               <motion.div key="dash" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
+
+                {/* ── System health bar ── */}
+                <div className="flex items-center justify-between bg-[var(--card-bg)] border border-[var(--border-c)] rounded-2xl px-5 py-3 shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-2.5 h-2.5 rounded-full ${appHealth === 'UP' ? 'bg-primary animate-pulse' : appHealth === 'DOWN' ? 'bg-red' : 'bg-amber animate-pulse'}`} />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-s)]">
+                      System Status
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-6">
+                    {[
+                      { label: 'API', ok: appHealth === 'UP' },
+                      { label: 'Database', ok: appHealth === 'UP' },
+                      { label: 'WebSocket', ok: appHealth === 'UP' },
+                    ].map(s => (
+                      <div key={s.label} className="flex items-center gap-1.5">
+                        <div className={`w-1.5 h-1.5 rounded-full ${s.ok ? 'bg-primary' : 'bg-red'}`} />
+                        <span className={`text-[9px] font-black uppercase tracking-widest ${s.ok ? 'text-primary' : 'text-red'}`}>
+                          {s.label}
+                        </span>
+                      </div>
+                    ))}
+                    <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border ${
+                      appHealth === 'UP' ? 'bg-primary/10 text-primary border-primary/20' :
+                      appHealth === 'DOWN' ? 'bg-red/10 text-red border-red/20' :
+                      'bg-amber/10 text-amber border-amber/20'
+                    }`}>
+                      {appHealth === 'loading' ? 'Checking...' : appHealth}
+                    </span>
+                  </div>
+                </div>
+
                 {/* KPI row */}
                 <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
                   {[
@@ -930,6 +1184,8 @@ const AdminDashboard: React.FC = () => {
             {activeSection === 'chat' && (
               <motion.div key="chat" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                 className="flex gap-4" style={{ height: 'calc(100vh - 140px)' }}>
+
+                <div className="flex gap-4 flex-1 min-h-0">
                 <div className="w-64 flex-shrink-0 bg-[var(--card-bg)] rounded-2xl border border-[var(--border-c)] flex flex-col overflow-hidden">
                   <div className="p-4 border-b border-[var(--border-c)] bg-primary text-white">
                     <h3 className="text-[10px] font-black uppercase tracking-widest">Inbox ({inbox.length})</h3>
@@ -959,23 +1215,33 @@ const AdminDashboard: React.FC = () => {
                       <div ref={chatScrollRef} className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
                         {messages.map((m, i) => {
                           const isAdmin = m.senderRole === 'ADMIN';
+                          const isVoice = m.messageType === 'VOICE';
                           return (
                             <div key={m.id ?? i} className={`flex group/amsg ${isAdmin ? 'justify-end' : 'justify-start'}`}>
                               <div className="relative">
-                                <div className={`max-w-[70%] px-4 py-3 rounded-2xl text-xs font-bold leading-relaxed ${isAdmin ? 'bg-primary text-white rounded-tr-sm' : 'bg-[var(--bg-main)] text-[var(--text-p)] rounded-tl-sm border border-[var(--border-c)]'}`}>
+                                <div className={`rounded-2xl text-xs font-bold leading-relaxed ${
+                                  isVoice ? '' : isAdmin
+                                    ? 'max-w-[70%] px-4 py-3 bg-primary text-white rounded-tr-sm'
+                                    : 'max-w-[70%] px-4 py-3 bg-[var(--bg-main)] text-[var(--text-p)] rounded-tl-sm border border-[var(--border-c)]'
+                                }`}>
                                   {/* Reply preview */}
-                                  {m.replyToContent && (
+                                  {m.replyToContent && !isVoice && (
                                     <div className={`text-[9px] font-black mb-1.5 px-2 py-1 rounded-lg border-l-2 truncate ${isAdmin ? 'bg-white/15 border-white/40 text-white/60' : 'bg-[var(--card-bg)] border-primary/40 text-[var(--text-s)]'}`}>
                                       ↩ {m.replyToContent}
                                     </div>
                                   )}
-                                  {m.content}
-                                  <div className={`text-[8px] mt-1 opacity-40 ${isAdmin ? 'text-right' : 'text-left'}`}>{new Date(m.sentAt).toLocaleTimeString()}</div>
+                                  {isVoice && m.voiceUrl
+                                    ? <AdminVoicePlayer src={m.voiceUrl} />
+                                    : m.content}
+                                  {!isVoice && (
+                                    <div className={`text-[8px] mt-1 opacity-40 ${isAdmin ? 'text-right' : 'text-left'}`}>
+                                      {new Date(m.sentAt).toLocaleTimeString()}
+                                    </div>
+                                  )}
                                 </div>
                                 {/* Hover actions */}
                                 <div className={`absolute top-1/2 -translate-y-1/2 hidden group-hover/amsg:flex items-center gap-1 ${isAdmin ? '-left-16' : '-right-16'}`}>
-                                  {/* Reply — on user messages only */}
-                                  {!isAdmin && (
+                                  {!isAdmin && !isVoice && (
                                     <button onClick={() => { setAdminReplyTo(m); setTimeout(() => document.getElementById('admin-reply-input')?.focus(), 50); }}
                                       title="Reply" className="w-6 h-6 bg-[var(--card-bg)] border border-[var(--border-c)] rounded-lg flex items-center justify-center text-[var(--text-s)] hover:text-primary hover:border-primary transition-all shadow-sm">
                                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -983,10 +1249,9 @@ const AdminDashboard: React.FC = () => {
                                       </svg>
                                     </button>
                                   )}
-                                  {/* Delete — on any message */}
                                   {m.id && (
                                     <button onClick={() => handleAdminDelete(m.id!)}
-                                      title="Delete message" className="w-6 h-6 bg-[var(--card-bg)] border border-[var(--border-c)] rounded-lg flex items-center justify-center text-[var(--text-s)] hover:text-red hover:border-red transition-all shadow-sm">
+                                      title="Delete" className="w-6 h-6 bg-[var(--card-bg)] border border-[var(--border-c)] rounded-lg flex items-center justify-center text-[var(--text-s)] hover:text-red hover:border-red transition-all shadow-sm">
                                       <Trash2 size={10} />
                                     </button>
                                   )}
@@ -1031,6 +1296,7 @@ const AdminDashboard: React.FC = () => {
                     </div>
                   )}
                 </div>
+                </div> {/* closes flex gap-4 flex-1 min-h-0 */}
               </motion.div>
             )}
           </AnimatePresence>

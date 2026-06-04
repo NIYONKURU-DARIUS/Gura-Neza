@@ -9,7 +9,6 @@ import { useStore } from '../context/store';
 import { chatService, type ChatMessage, parseSentAt } from '../services/chatService';
 import api from '../services/api';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8086/api';
 
 /* ── Voice message player ─────────────────────────────────────────── */
 const VoicePlayer: React.FC<{ src: string; isOwn: boolean }> = ({ src, isOwn }) => {
@@ -17,34 +16,110 @@ const VoicePlayer: React.FC<{ src: string; isOwn: boolean }> = ({ src, isOwn }) 
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState(false);
+  const probingRef = useRef(false); // true while we're doing the duration-probe seek
 
-  const toggle = () => {
-    if (!audioRef.current) return;
-    if (playing) { audioRef.current.pause(); }
-    else { audioRef.current.play(); }
-    setPlaying(!playing);
+  useEffect(() => {
+    let objectUrl: string | null = null;
+    const path = src.startsWith('/api') ? src.slice(4) : src;
+    api.get(path, { responseType: 'blob' })
+      .then(res => {
+        objectUrl = URL.createObjectURL(res.data);
+        setBlobUrl(objectUrl);
+      })
+      .catch(() => setLoadError(true));
+    return () => { if (objectUrl) URL.revokeObjectURL(objectUrl); };
+  }, [src]);
+
+  const fmt = (s: number) => {
+    if (!isFinite(s) || isNaN(s) || s < 0) return '0:00';
+    return `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
   };
 
-  const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+  const handleLoadedMetadata = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (isFinite(audio.duration) && audio.duration > 0) {
+      setDuration(audio.duration);
+    } else {
+      // Probe: seek to end to force browser to calculate duration
+      probingRef.current = true;
+      audio.currentTime = 1e9;
+    }
+  };
+
+  const handleSeeked = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (probingRef.current) {
+      probingRef.current = false;
+      if (isFinite(audio.duration) && audio.duration > 0) {
+        setDuration(audio.duration);
+      }
+      audio.currentTime = 0; // reset to start after probe
+    }
+  };
+
+  const toggle = () => {
+    const audio = audioRef.current;
+    if (!audio || !blobUrl) return;
+    if (playing) {
+      audio.pause();
+      setPlaying(false);
+    } else {
+      // If probe reset currentTime but didn't clear readyState, load() first
+      if (audio.readyState === 0) audio.load();
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise.then(() => setPlaying(true)).catch(() => setPlaying(false));
+      } else {
+        setPlaying(true);
+      }
+    }
+  };
+
+  if (loadError) {
+    return (
+      <div className={`flex items-center gap-2 px-3 py-2 rounded-2xl text-[9px] font-black opacity-50 ${isOwn ? 'text-white' : 'text-[var(--text-s)]'}`}>
+        🎤 Voice message unavailable
+      </div>
+    );
+  }
 
   return (
-    <div className={`flex items-center gap-2 px-3 py-2 rounded-2xl min-w-[160px] ${isOwn ? 'bg-primary/80' : 'bg-[var(--bg-main)]'}`}>
-      <audio ref={audioRef}
-        src={`${API_BASE.replace('/api', '')}${src}`}
-        onTimeUpdate={() => setProgress(audioRef.current?.currentTime ?? 0)}
-        onLoadedMetadata={() => setDuration(audioRef.current?.duration ?? 0)}
-        onEnded={() => { setPlaying(false); setProgress(0); }}
-      />
-      <button onClick={toggle} className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${isOwn ? 'bg-white/20 text-white' : 'bg-primary/10 text-primary'}`}>
-        {playing ? <Pause size={13} /> : <Play size={13} />}
+    <div className={`flex items-center gap-2 px-3 py-2 rounded-2xl min-w-[180px] ${isOwn ? 'bg-primary/80' : 'bg-[var(--bg-main)]'}`}>
+      {blobUrl && (
+        <audio
+          ref={audioRef}
+          src={blobUrl}
+          preload="metadata"
+          onLoadedMetadata={handleLoadedMetadata}
+          onSeeked={handleSeeked}
+          onTimeUpdate={() => setProgress(audioRef.current?.currentTime ?? 0)}
+          onEnded={() => { setPlaying(false); setProgress(0); }}
+          onPause={() => setPlaying(false)}
+        />
+      )}
+      <button onClick={toggle} disabled={!blobUrl}
+        className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${isOwn ? 'bg-white/20 text-white' : 'bg-primary/10 text-primary'} disabled:opacity-40`}>
+        {!blobUrl ? <Loader2 size={12} className="animate-spin" /> : playing ? <Pause size={13} /> : <Play size={13} />}
       </button>
-      <div className="flex-1 flex flex-col gap-0.5">
-        <div className={`h-1 rounded-full overflow-hidden ${isOwn ? 'bg-white/20' : 'bg-[var(--border-c)]'}`}>
+      <div className="flex-1 flex flex-col gap-1">
+        <div
+          className={`h-1.5 rounded-full overflow-hidden cursor-pointer ${isOwn ? 'bg-white/20' : 'bg-[var(--border-c)]'}`}
+          onClick={e => {
+            if (!audioRef.current || !duration) return;
+            const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
+            const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+            audioRef.current.currentTime = pct * duration;
+          }}
+        >
           <div className={`h-full rounded-full transition-all ${isOwn ? 'bg-white' : 'bg-primary'}`}
-            style={{ width: duration ? `${(progress / duration) * 100}%` : '0%' }} />
+            style={{ width: duration > 0 ? `${(progress / duration) * 100}%` : '0%' }} />
         </div>
         <span className={`text-[8px] font-black ${isOwn ? 'text-white/60' : 'text-[var(--text-s)]'}`}>
-          {fmt(progress)} / {fmt(duration)}
+          {fmt(progress)} / {duration > 0 && isFinite(duration) ? fmt(duration) : '--:--'}
         </span>
       </div>
       <Volume2 size={11} className={isOwn ? 'text-white/50' : 'text-[var(--text-s)]'} />
@@ -139,6 +214,28 @@ const ChatWidget: React.FC = () => {
 
   useEffect(() => {
     if (!token || !user || user.role === 'ADMIN') return;
+    // Connect WebSocket immediately on login (not just when chat opens) so calls work anytime
+    chatService.connect(token, (newMsg) => {
+      setMessages(prev => {
+        const exists = prev.some(
+          m => (m.id && m.id === newMsg.id) ||
+               (m.sentAt === newMsg.sentAt && m.content === newMsg.content)
+        );
+        if (exists) return prev;
+        if (newMsg.senderRole === 'ADMIN') lastMsgCountRef.current += 1;
+        return [...prev, newMsg];
+      });
+    }).then(() => {
+      const uid = userRef.current?.id?.toString();
+      if (uid) {
+        chatService.subscribeToUser(uid);
+        chatService.subscribeToWallet(uid, (newBalance) => {
+          const current = userRef.current;
+          if (current) setUser({ ...current, walletBalance: newBalance });
+        });
+        chatService.subscribeToCallSignal(uid, handleCallSignal);
+      }
+    });
     chatService.getHistory().then(history => {
       const adminMsgs = history.filter(m => m.senderRole === 'ADMIN');
       lastMsgCountRef.current = adminMsgs.length;
@@ -146,7 +243,10 @@ const ChatWidget: React.FC = () => {
       if (unread > 0) { setUnreadCount(unread); setShowPulse(true); }
     }).catch(() => {});
     bgPollRef.current = setInterval(bgPoll, 5000);
-    return () => { if (bgPollRef.current) clearInterval(bgPollRef.current); };
+    return () => {
+      if (bgPollRef.current) clearInterval(bgPollRef.current);
+      chatService.disconnect();
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, user?.id]);
 
@@ -249,30 +349,51 @@ const ChatWidget: React.FC = () => {
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mr = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+
+      // Pick the best supported mimeType — fall back gracefully
+      const mimeType = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg', 'audio/mp4', '']
+        .find(m => m === '' || MediaRecorder.isTypeSupported(m)) ?? '';
+
+      const mr = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
       audioChunksRef.current = [];
-      mr.ondataavailable = e => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
+
+      mr.ondataavailable = e => {
+        if (e.data && e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
       mr.onstop = async () => {
         stream.getTracks().forEach(t => t.stop());
-        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        if (audioChunksRef.current.length === 0) return; // nothing recorded
+        const blob = new Blob(audioChunksRef.current, { type: mr.mimeType || 'audio/webm' });
+        const ext = mr.mimeType.includes('mp4') ? 'mp4' : mr.mimeType.includes('ogg') ? 'ogg' : 'webm';
         const form = new FormData();
-        form.append('file', blob, 'voice.webm');
+        form.append('file', blob, `voice.${ext}`);
         try {
           const res = await api.post('/chat/voice', form, { headers: { 'Content-Type': 'multipart/form-data' } });
           const sent: ChatMessage = { ...res.data, sentAt: parseSentAt(res.data.sentAt) };
           setMessages(prev => prev.some(m => m.id === sent.id) ? prev : [...prev, sent]);
-        } catch { /* silent */ }
+        } catch (err) {
+          console.error('Failed to upload voice message', err);
+        }
       };
-      mr.start();
+
+      // Request data every 250ms to ensure chunks arrive before stop
+      mr.start(250);
       mediaRecorderRef.current = mr;
       setIsRecording(true);
       setRecordingSeconds(0);
       recordTimerRef.current = setInterval(() => setRecordingSeconds(s => s + 1), 1000);
-    } catch { /* mic denied */ }
+    } catch (err) {
+      console.error('Mic access denied or MediaRecorder failed', err);
+      setSendError('Microphone access denied.');
+      setTimeout(() => setSendError(''), 3000);
+    }
   };
 
   const stopRecording = () => {
-    mediaRecorderRef.current?.stop();
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
     mediaRecorderRef.current = null;
     setIsRecording(false);
     if (recordTimerRef.current) { clearInterval(recordTimerRef.current); recordTimerRef.current = null; }

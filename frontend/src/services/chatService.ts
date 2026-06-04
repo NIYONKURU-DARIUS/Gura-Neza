@@ -52,6 +52,8 @@ const WS_URL = API_BASE_URL.replace('/api', '/ws');
 class ChatService {
   private client: Client | null = null;
   private onMessageReceived: ((msg: ChatMessage) => void) | null = null;
+  // Queued subscriptions to register once connected
+  private pendingSubscriptions: Array<() => void> = [];
 
   async connect(token: string, onMessage: (msg: ChatMessage) => void) {
     this.onMessageReceived = (msg) => onMessage({ ...msg, sentAt: parseSentAt(msg.sentAt) });
@@ -65,6 +67,9 @@ class ChatService {
         },
         onConnect: () => {
           console.log('Connected to WebSocket');
+          // Flush any subscriptions that were registered before the connection was ready
+          this.pendingSubscriptions.forEach(fn => fn());
+          this.pendingSubscriptions = [];
         },
         onStompError: (frame) => {
           console.error('STOMP error', frame.headers['message']);
@@ -77,40 +82,13 @@ class ChatService {
     }
   }
 
-  subscribeToUser(userId: string) {
+  /** Run fn immediately if connected, otherwise queue it for onConnect */
+  private whenConnected(fn: () => void) {
     if (this.client?.connected) {
-      this.client.subscribe(`/topic/user/${userId}`, (message) => {
-        if (this.onMessageReceived) {
-          this.onMessageReceived(JSON.parse(message.body));
-        }
-      });
+      fn();
+    } else {
+      this.pendingSubscriptions.push(fn);
     }
-  }
-
-  subscribeToWallet(userId: string, onUpdate: (balance: number) => void) {
-    if (this.client?.connected) {
-      this.client.subscribe(`/topic/user/${userId}/wallet`, (message) => {
-        onUpdate(JSON.parse(message.body));
-      });
-    }
-  }
-
-  subscribeToThread(userId: string) {
-      if (this.client?.connected) {
-        this.client.subscribe(`/topic/admin/thread/${userId}`, (message) => {
-          if (this.onMessageReceived) {
-            this.onMessageReceived(JSON.parse(message.body));
-          }
-        });
-      }
-  }
-
-  subscribeToInbox(onInboxUpdate: () => void) {
-      if (this.client?.connected) {
-        this.client.subscribe(`/topic/admin/inbox`, () => {
-           onInboxUpdate();
-        });
-      }
   }
 
   sendMessage(content: string) {
@@ -135,6 +113,7 @@ class ChatService {
   }
 
   disconnect() {
+    this.pendingSubscriptions = [];
     if (this.client) {
       this.client.deactivate();
     }
@@ -161,12 +140,50 @@ class ChatService {
     }
   }
 
-  subscribeToCallSignal(userId: string, onSignal: (signal: any) => void) {
-    if (this.client?.connected) {
-      this.client.subscribe(`/topic/user/${userId}/call`, (message) => {
+  subscribeToUser(userId: string) {
+    this.whenConnected(() => {
+      this.client!.subscribe(`/topic/user/${userId}`, (message) => {
+        if (this.onMessageReceived) this.onMessageReceived(JSON.parse(message.body));
+      });
+    });
+  }
+
+  subscribeToWallet(userId: string, onUpdate: (balance: number) => void) {
+    this.whenConnected(() => {
+      this.client!.subscribe(`/topic/user/${userId}/wallet`, (message) => {
+        onUpdate(JSON.parse(message.body));
+      });
+    });
+  }
+
+  subscribeToThread(userId: string) {
+    this.whenConnected(() => {
+      this.client!.subscribe(`/topic/admin/thread/${userId}`, (message) => {
+        if (this.onMessageReceived) this.onMessageReceived(JSON.parse(message.body));
+      });
+    });
+  }
+
+  subscribeToInbox(onInboxUpdate: () => void) {
+    this.whenConnected(() => {
+      this.client!.subscribe(`/topic/admin/inbox`, () => onInboxUpdate());
+    });
+  }
+
+  subscribeToAdminCallSignal(onSignal: (signal: any) => void) {
+    this.whenConnected(() => {
+      this.client!.subscribe(`/topic/admin/call`, (message) => {
         onSignal(JSON.parse(message.body));
       });
-    }
+    });
+  }
+
+  subscribeToCallSignal(userId: string, onSignal: (signal: any) => void) {
+    this.whenConnected(() => {
+      this.client!.subscribe(`/topic/user/${userId}/call`, (message) => {
+        onSignal(JSON.parse(message.body));
+      });
+    });
   }
 
   async sendVoice(blob: Blob): Promise<ChatMessage> {

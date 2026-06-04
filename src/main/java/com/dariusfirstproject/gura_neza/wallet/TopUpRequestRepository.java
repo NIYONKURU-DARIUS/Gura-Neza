@@ -8,6 +8,5 @@ import java.util.List;
 @Repository
 public interface TopUpRequestRepository extends JpaRepository<TopUpRequestEntity, Long> {
     List<TopUpRequestEntity> findByUserId(Long userId);
-    List<TopUpRequestEntity> findByStatus(TopUpRequestStatus status);
     long countByStatus(TopUpRequestStatus status);
 }

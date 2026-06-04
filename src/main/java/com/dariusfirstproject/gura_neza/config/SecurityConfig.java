@@ -62,6 +62,9 @@ public class SecurityConfig {
                         .requestMatchers("/v3/api-docs/**").permitAll()
                         // WebSocket handshake endpoints must be open
                         .requestMatchers("/ws/**").permitAll()
+                        // Actuator health + info are public; others require ADMIN
+                        .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                        .requestMatchers("/actuator/**").hasAuthority("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
